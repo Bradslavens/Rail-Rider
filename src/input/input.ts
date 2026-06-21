@@ -13,6 +13,8 @@ export class InputManager {
   onMapToggle?: () => void;
   onPrevLine?: () => void;
   onNextLine?: () => void;
+  onSpeedUp?: () => void;
+  onSpeedDown?: () => void;
 
   constructor() {
     window.addEventListener("keydown", (e) => {
@@ -23,6 +25,8 @@ export class InputManager {
         else if (k === "m") this.onMapToggle?.();
         else if (k === "[") this.onPrevLine?.();
         else if (k === "]") this.onNextLine?.();
+        else if (k === "." || k === ">") this.onSpeedUp?.();
+        else if (k === "," || k === "<") this.onSpeedDown?.();
       }
       this.keys.add(k);
     });
@@ -47,6 +51,8 @@ export class InputManager {
     if (edge(8)) this.onMapToggle?.(); // Back/Select
     if (edge(4)) this.onPrevLine?.(); // LB
     if (edge(5)) this.onNextLine?.(); // RB
+    if (edge(12)) this.onSpeedUp?.(); // D-pad up
+    if (edge(13)) this.onSpeedDown?.(); // D-pad down
     this.prevButtons = pressed;
   }
 

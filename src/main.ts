@@ -5,6 +5,7 @@ import { buildSignals } from "./render/signals.ts";
 import { placeSignals } from "./sim/signals.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import { stepTrolley, DEFAULT_PARAMS, type TrolleyState } from "./sim/trolley.ts";
+import { planSubsteps, FIXED_DT, TIME_SCALES } from "./sim/clock.ts";
 import { SpeedLimitProfile, DEFAULT_SPEED_LIMIT } from "./sim/speedLimit.ts";
 import {
   updateStop,
@@ -70,6 +71,8 @@ let limits = new SpeedLimitProfile(data.tracks[0].points, DEFAULT_SPEED_LIMIT);
 let state: TrolleyState = { s: 0, v: 0 };
 let stop: StopState = INITIAL_STOP;
 let reverse = false;
+let scaleIndex = 0;
+let timeScale = TIME_SCALES[scaleIndex];
 
 function selectTrack(i: number): void {
   const n = data.tracks.length;
@@ -91,6 +94,14 @@ input.onCameraToggle = () => director.cycleDriveView();
 input.onMapToggle = () => director.toggleMap();
 input.onPrevLine = () => selectTrack(trackIndex - 1);
 input.onNextLine = () => selectTrack(trackIndex + 1);
+input.onSpeedUp = () => {
+  scaleIndex = Math.min(scaleIndex + 1, TIME_SCALES.length - 1);
+  timeScale = TIME_SCALES[scaleIndex];
+};
+input.onSpeedDown = () => {
+  scaleIndex = Math.max(scaleIndex - 1, 0);
+  timeScale = TIME_SCALES[scaleIndex];
+};
 
 // --- Line picker ----------------------------------------------------------
 const picker = document.getElementById("picker") as HTMLDivElement;
@@ -122,7 +133,7 @@ hud.innerHTML = `
   <div id="hud-signal"></div>
   <div class="doors" id="hud-doors"></div>
   <div class="hint" id="hud-view"></div>
-  <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] change line · Space horn</div>
+  <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] line · , . sim speed · Space horn</div>
 `;
 const elLine = document.getElementById("hud-line") as HTMLDivElement;
 const elSpeed = document.getElementById("hud-speed") as HTMLDivElement;
@@ -177,7 +188,7 @@ function updateHud(limit: number): void {
     elDoors.textContent = "";
   }
 
-  elView.textContent = `View: ${director.view}`;
+  elView.textContent = `View: ${director.view} · Sim ×${timeScale}`;
 }
 
 // --- Resize ---------------------------------------------------------------
@@ -191,24 +202,32 @@ window.addEventListener("resize", resize);
 
 // --- Main loop ------------------------------------------------------------
 const clock = new THREE.Clock();
+let accumulator = 0;
 function frame(): void {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const realDt = Math.min(clock.getDelta(), 0.05);
   input.update();
 
-  const limit = limits.limitAt(state.s);
-  // Hold the trolley while the doors are open (dwelling at a platform).
-  const throttle = stop.doorsOpen ? 0 : input.throttle;
-  const brake = stop.doorsOpen ? 1 : input.brake;
-
-  state = stepTrolley(
-    state,
-    DEFAULT_PARAMS,
-    { throttle, brake, reverse },
-    dt,
-    path.length,
-    limit,
-  );
-  stop = updateStop(stop, state, data.tracks[trackIndex].stations, DEFAULT_STOP_PARAMS, dt);
+  // Consume the (time-scaled) frame in fixed sub-steps so fast-forward never
+  // skips platform zones, signals, or the end of the line.
+  const { steps, remainder } = planSubsteps(accumulator, realDt * timeScale);
+  accumulator = remainder;
+  const stations = data.tracks[trackIndex].stations;
+  let limit = limits.limitAt(state.s);
+  for (let i = 0; i < steps; i++) {
+    limit = limits.limitAt(state.s);
+    // Hold the trolley while the doors are open (dwelling at a platform).
+    const throttle = stop.doorsOpen ? 0 : input.throttle;
+    const brake = stop.doorsOpen ? 1 : input.brake;
+    state = stepTrolley(
+      state,
+      DEFAULT_PARAMS,
+      { throttle, brake, reverse },
+      FIXED_DT,
+      path.length,
+      limit,
+    );
+    stop = updateStop(stop, state, stations, DEFAULT_STOP_PARAMS, FIXED_DT);
+  }
 
   const pos = path.positionAt(state.s);
   const heading = path.tangentAt(state.s);
