@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { TrackPoint } from "../core/types.ts";
+import { loadTextureSet } from "./textures.ts";
 
 // A 3D permanent way for the active line: a ballast strip, evenly spaced ties,
 // and two steel rails — all built from the resampled centreline and merged so
@@ -36,12 +37,14 @@ function frames(points: TrackPoint[]): Frame[] {
 }
 
 /** A continuous ribbon of half-width `half` at height `y` along the frames. */
-function ribbon(fr: Frame[], half: number, y: number): THREE.BufferGeometry {
+function ribbon(fr: Frame[], half: number, y: number, tile = 0): THREE.BufferGeometry {
   const verts: number[] = [];
+  const uvs: number[] = [];
   const idx: number[] = [];
   for (let i = 0; i < fr.length; i++) {
     const f = fr[i];
     verts.push(f.x + f.px * half, y, f.z + f.pz * half, f.x - f.px * half, y, f.z - f.pz * half);
+    if (tile > 0) uvs.push(0, f.dist / tile, 1, f.dist / tile);
   }
   for (let i = 0; i < fr.length - 1; i++) {
     const b = i * 2;
@@ -49,6 +52,7 @@ function ribbon(fr: Frame[], half: number, y: number): THREE.BufferGeometry {
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+  if (tile > 0) geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
   return geo;
@@ -70,10 +74,16 @@ export function buildTrack3D(points: TrackPoint[]): THREE.Group {
   const group = new THREE.Group();
   const fr = frames(points);
 
-  // Ballast bed.
+  // Ballast bed (tiled gravel).
+  const gravel = loadTextureSet("ballast");
   const ballast = new THREE.Mesh(
-    ribbon(fr, BALLAST_HALF, 0.06),
-    new THREE.MeshStandardMaterial({ color: 0x4b463f, roughness: 1 }),
+    ribbon(fr, BALLAST_HALF, 0.06, 3),
+    new THREE.MeshStandardMaterial({
+      map: gravel.map,
+      normalMap: gravel.normalMap,
+      roughnessMap: gravel.roughnessMap,
+      color: 0x9b948a,
+    }),
   );
   ballast.receiveShadow = true;
   group.add(ballast);

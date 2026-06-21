@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Sky } from "three/examples/jsm/objects/Sky.js";
+import { loadTextureSet } from "./textures.ts";
 
 export interface Environment {
   /** Move the sun's shadow frustum to follow the trolley each frame. */
@@ -56,10 +57,21 @@ export function setupEnvironment(scene: THREE.Scene, renderer: THREE.WebGLRender
   scene.add(sun);
   scene.add(sun.target);
 
-  // Ground.
+  // Ground (tiled grass texture).
+  const GROUND_SIZE = 120000;
+  const grass = loadTextureSet("grass");
+  const TILE = 8; // meters per texture tile
+  for (const t of [grass.map, grass.normalMap, grass.roughnessMap]) {
+    t.repeat.set(GROUND_SIZE / TILE, GROUND_SIZE / TILE);
+  }
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(120000, 120000),
-    new THREE.MeshStandardMaterial({ color: 0x3c463a, roughness: 1 }),
+    new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
+    new THREE.MeshStandardMaterial({
+      map: grass.map,
+      normalMap: grass.normalMap,
+      roughnessMap: grass.roughnessMap,
+      color: 0x9aa48f,
+    }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.3;

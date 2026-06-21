@@ -29,6 +29,17 @@ pulled within a corridor around the rail lines.
 Heights come from OSM `height` / `building:levels` tags where present, else a
 low-rise default; positions are reprojected with the same origin as the tracks.
 
+## Textures
+
+Surface textures (asphalt, gravel/ballast, concrete, grass) under
+`public/textures/` are from **ambientCG** and are **CC0 / public domain** — no
+attribution is required, but credit is given here gratefully.
+
+- **Source:** ambientCG — https://ambientcg.com/
+- **License:** CC0 1.0 (public domain)
+- **Sets:** Asphalt026C, Gravel022, Concrete034, Grass004 (1K JPG, color +
+  normal + roughness maps).
+
 ## What is committed
 
 - `pipeline/raw/` — the downloaded GTFS zip and extracted files. **Not committed**
