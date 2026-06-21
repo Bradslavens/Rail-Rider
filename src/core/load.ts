@@ -1,4 +1,4 @@
-import type { NetworkData, Track, Station, Meta } from "./types.ts";
+import type { NetworkData, Track, Station, Meta, SignalSet } from "./types.ts";
 
 // Load the processed network JSON served from /data (synced from pipeline/out).
 export async function loadNetwork(): Promise<NetworkData> {
@@ -8,6 +8,17 @@ export async function loadNetwork(): Promise<NetworkData> {
     fetchJson<Meta>("/data/meta.json"),
   ]);
   return { tracks, stations, meta };
+}
+
+/** Load the hand-authored signal set; tolerates a missing file. */
+export async function loadSignals(): Promise<SignalSet> {
+  try {
+    const res = await fetch("/data/signals.json");
+    if (!res.ok) return { signals: [] };
+    return (await res.json()) as SignalSet;
+  } catch {
+    return { signals: [] };
+  }
 }
 
 async function fetchJson<T>(url: string): Promise<T> {

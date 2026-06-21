@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, "../pipeline/out");
+const DATA = resolve(HERE, "../data");
 const DEST = resolve(HERE, "../public/data");
 const FILES = ["tracks.json", "stations.json", "meta.json"];
 
@@ -19,4 +20,12 @@ for (const f of FILES) {
   }
   copyFileSync(src, resolve(DEST, f));
 }
-console.log(`Synced ${FILES.length} data files -> public/data`);
+
+// Hand-authored runtime data (committed under data/, not pipeline output).
+let extra = 0;
+const signals = resolve(DATA, "signals.json");
+if (existsSync(signals)) {
+  copyFileSync(signals, resolve(DEST, "signals.json"));
+  extra++;
+}
+console.log(`Synced ${FILES.length + extra} data files -> public/data`);

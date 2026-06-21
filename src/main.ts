@@ -1,6 +1,8 @@
 import * as THREE from "three";
-import { loadNetwork } from "./core/load.ts";
+import { loadNetwork, loadSignals } from "./core/load.ts";
 import { buildNetwork } from "./render/network.ts";
+import { buildSignals } from "./render/signals.ts";
+import { placeSignals } from "./sim/signals.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import { stepTrolley, DEFAULT_PARAMS, type TrolleyState } from "./sim/trolley.ts";
 import { SpeedLimitProfile, DEFAULT_SPEED_LIMIT } from "./sim/speedLimit.ts";
@@ -29,6 +31,18 @@ scene.add(sun);
 // --- Load network ---------------------------------------------------------
 const data = await loadNetwork();
 scene.add(buildNetwork(data).group);
+
+// --- Signals (Phase 5 foundation) ----------------------------------------
+// Build paths only for the shapes signals actually reference, then resolve
+// each signal to a world position and render the lot once.
+const signalSet = await loadSignals();
+const usedShapes = new Set(signalSet.signals.map((s) => s.shapeId));
+const signalPaths = new Map<string, TrackPath>();
+for (const t of data.tracks) {
+  if (usedShapes.has(t.shapeId)) signalPaths.set(t.shapeId, new TrackPath(t.points));
+}
+const placedSignals = placeSignals(signalSet.signals, signalPaths);
+scene.add(buildSignals(placedSignals));
 
 // Reference grid sized to the network (1 km cells).
 const span = Math.max(
@@ -105,6 +119,7 @@ hud.innerHTML = `
   <div id="hud-line"></div>
   <div id="hud-speed"></div>
   <div id="hud-next"></div>
+  <div id="hud-signal"></div>
   <div class="doors" id="hud-doors"></div>
   <div class="hint" id="hud-view"></div>
   <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] change line · Space horn</div>
@@ -112,7 +127,10 @@ hud.innerHTML = `
 const elLine = document.getElementById("hud-line") as HTMLDivElement;
 const elSpeed = document.getElementById("hud-speed") as HTMLDivElement;
 const elNext = document.getElementById("hud-next") as HTMLDivElement;
+const elSignal = document.getElementById("hud-signal") as HTMLDivElement;
 const elDoors = document.getElementById("hud-doors") as HTMLDivElement;
+
+const ASPECT_GLYPH: Record<string, string> = { red: "🔴", yellow: "🟡", green: "🟢" };
 const elView = document.getElementById("hud-view") as HTMLDivElement;
 
 function fmtMeters(m: number): string {
@@ -139,6 +157,18 @@ function updateHud(limit: number): void {
   elNext.textContent = next
     ? `Next: ${next.name} (${fmtMeters(Math.abs(next.distAlong - state.s))})`
     : "Next: — end of line";
+
+  // Nearest signal ahead on the current shape (signals only face forward travel).
+  let sig: { name: string; aspect: string; distM: number } | undefined;
+  if (!reverse) {
+    for (const s of placedSignals) {
+      if (s.shapeId !== t.shapeId || s.distM <= state.s + 1) continue;
+      if (!sig || s.distM < sig.distM) sig = s;
+    }
+  }
+  elSignal.textContent = sig
+    ? `Signal ${sig.name} ${ASPECT_GLYPH[sig.aspect] ?? ""} ${sig.aspect} (${fmtMeters(sig.distM - state.s)})`
+    : "";
 
   if (stop.doorsOpen) {
     const at = t.stations[stop.stationIndex];

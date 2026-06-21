@@ -60,3 +60,31 @@ export interface NetworkData {
   stations: Station[];
   meta: Meta;
 }
+
+// --- Signals (Phase 5 foundation) ----------------------------------------
+
+export type SignalAspect = "red" | "yellow" | "green";
+export type SignalSide = "L" | "R";
+
+/** A wayside signal anchored to a track shape at an arc-length position. */
+export interface Signal {
+  id: string;
+  name: string;
+  shapeId: string;
+  distM: number;
+  side: SignalSide;
+  aspect: SignalAspect;
+}
+
+export interface SignalSet {
+  note?: string;
+  signals: Signal[];
+}
+
+/** A signal resolved to a world position + facing (computed at load). */
+export interface PlacedSignal extends Signal {
+  x: number;
+  z: number;
+  /** Yaw (radians) so the head faces the approaching (forward) train. */
+  headingRad: number;
+}
