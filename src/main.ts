@@ -3,6 +3,7 @@ import { loadNetwork, loadSignals, loadLandmarks } from "./core/load.ts";
 import { buildNetwork } from "./render/network.ts";
 import { buildLandmarks } from "./render/landmarks.ts";
 import { CrossingsController } from "./render/crossings.ts";
+import { setupEnvironment } from "./render/environment.ts";
 import { SignalEditor } from "./edit/signalEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import type { TrackPoint } from "./core/types.ts";
@@ -25,11 +26,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0e13);
-scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-const sun = new THREE.DirectionalLight(0xffffff, 1.1);
-sun.position.set(500, 1000, 300);
-scene.add(sun);
+const environment = setupEnvironment(scene, renderer);
 
 // --- Load network ---------------------------------------------------------
 const data = await loadNetwork();
@@ -41,25 +38,15 @@ scene.add(buildLandmarks(landmarks));
 const crossings = new CrossingsController(landmarks.crossings);
 scene.add(crossings.group);
 
-// Reference grid sized to the network (1 km cells).
-const span = Math.max(
-  data.meta.bbox.maxX - data.meta.bbox.minX,
-  data.meta.bbox.maxZ - data.meta.bbox.minZ,
-);
-const gridSize = Math.ceil(span / 1000) * 1000;
-const grid = new THREE.GridHelper(gridSize, gridSize / 1000, 0x1b2733, 0x141b24);
-grid.position.set(
-  (data.meta.bbox.minX + data.meta.bbox.maxX) / 2,
-  -2,
-  (data.meta.bbox.minZ + data.meta.bbox.maxZ) / 2,
-);
-scene.add(grid);
-
 // --- Trolley + driving state ---------------------------------------------
 const director = new CameraDirector(data.meta);
 const input = new InputManager();
 const trolley = buildTrolley(data.tracks[0].colorHex);
+trolley.group.traverse((o) => {
+  if ((o as THREE.Mesh).isMesh) o.castShadow = true;
+});
 scene.add(trolley.group);
+const focus = new THREE.Vector3();
 
 let trackIndex = 0;
 let path = new TrackPath(data.tracks[0].points);
@@ -255,6 +242,8 @@ function frame(): void {
   trolley.group.rotation.y = Math.atan2(heading.x, heading.z);
 
   director.follow(pos, heading);
+  focus.set(pos.x, 0, pos.z);
+  environment.update(focus);
   crossings.update(state.s, realDt, performance.now());
   updateHud(limit);
   renderer.render(scene, director.active);

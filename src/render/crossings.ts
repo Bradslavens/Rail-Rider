@@ -54,6 +54,7 @@ export class CrossingsController {
     for (const side of [1, -1]) {
       const post = new THREE.Mesh(postGeo, this.postMat);
       post.position.set(side * POST_OFFSET, 1.5, 0);
+      post.castShadow = true;
       group.add(post);
 
       // Pivot at the top of the post; arm extends toward the track centre.
@@ -61,6 +62,7 @@ export class CrossingsController {
       pivot.position.set(side * POST_OFFSET, 3, 0);
       const arm = new THREE.Mesh(armGeo, this.armMat);
       arm.position.x = -side * (ARM_LEN / 2);
+      arm.castShadow = true;
       pivot.add(arm);
       group.add(pivot);
       gates.push({ pivot, side });

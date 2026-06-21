@@ -53,16 +53,21 @@ export function buildLandmarks(data: LandmarksData): THREE.Group {
   const roadGeos = data.roads.map((r) => roadGeometry(r, 0.15)).filter((g): g is THREE.BufferGeometry => !!g);
   if (roadGeos.length) {
     const merged = mergeGeometries(roadGeos, false);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x2b2f36, roughness: 0.95 });
-    group.add(new THREE.Mesh(merged, mat));
+    const mat = new THREE.MeshStandardMaterial({ color: 0x33373d, roughness: 0.95 });
+    const mesh = new THREE.Mesh(merged, mat);
+    mesh.receiveShadow = true;
+    group.add(mesh);
   }
 
   // Buildings extruded to height.
   const bGeos = data.buildings.map(buildingGeometry).filter((g): g is THREE.BufferGeometry => !!g);
   if (bGeos.length) {
     const merged = mergeGeometries(bGeos, false);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x556070, roughness: 0.85, metalness: 0.05 });
-    group.add(new THREE.Mesh(merged, mat));
+    const mat = new THREE.MeshStandardMaterial({ color: 0x8c93a0, roughness: 0.85, metalness: 0.05 });
+    const mesh = new THREE.Mesh(merged, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
   }
 
   return group;
