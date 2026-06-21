@@ -12,6 +12,8 @@ export interface NearestResult {
   /** The closest point on the centreline. */
   x: number;
   z: number;
+  /** Perpendicular distance from the input point to the centreline (m). */
+  offset: number;
 }
 
 /** Closest point of segment [a,b] to (px,pz) as a clamped t in [0,1]. */
@@ -48,7 +50,7 @@ export function nearestOnPath(points: TrackPoint[], px: number, pz: number): Nea
       const tz = dz / len;
       // Right side is the (tz, -tx) direction from the centreline.
       const side: SignalSide = (px - cx) * tz + (pz - cz) * -tx >= 0 ? "R" : "L";
-      best = { distM: a.dist + (b.dist - a.dist) * t, side, x: cx, z: cz };
+      best = { distM: a.dist + (b.dist - a.dist) * t, side, x: cx, z: cz, offset: off };
     }
   }
   if (!best) throw new Error("nearestOnPath needs at least 2 points");

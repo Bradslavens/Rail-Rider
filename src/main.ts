@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { loadNetwork, loadSignals, loadLandmarks } from "./core/load.ts";
 import { buildNetwork } from "./render/network.ts";
 import { buildLandmarks } from "./render/landmarks.ts";
+import { CrossingsController } from "./render/crossings.ts";
 import { SignalEditor } from "./edit/signalEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import type { TrackPoint } from "./core/types.ts";
@@ -37,6 +38,8 @@ scene.add(buildNetwork(data).group);
 // OSM landmarks (buildings/roads) — tolerant of a missing file.
 const landmarks = await loadLandmarks();
 scene.add(buildLandmarks(landmarks));
+const crossings = new CrossingsController(landmarks.crossings);
+scene.add(crossings.group);
 
 // Reference grid sized to the network (1 km cells).
 const span = Math.max(
@@ -77,6 +80,7 @@ function selectTrack(i: number): void {
   stop = INITIAL_STOP;
   reverse = false;
   trolley.setColor(t.colorHex);
+  crossings.setActiveTrack(t.points, path);
   renderPicker();
 }
 
@@ -251,6 +255,7 @@ function frame(): void {
   trolley.group.rotation.y = Math.atan2(heading.x, heading.z);
 
   director.follow(pos, heading);
+  crossings.update(state.s, realDt, performance.now());
   updateHud(limit);
   renderer.render(scene, director.active);
   requestAnimationFrame(frame);
