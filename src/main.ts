@@ -3,6 +3,13 @@ import { loadNetwork } from "./core/load.ts";
 import { buildNetwork } from "./render/network.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import { stepTrolley, DEFAULT_PARAMS, type TrolleyState } from "./sim/trolley.ts";
+import { SpeedLimitProfile, DEFAULT_SPEED_LIMIT } from "./sim/speedLimit.ts";
+import {
+  updateStop,
+  INITIAL_STOP,
+  DEFAULT_STOP_PARAMS,
+  type StopState,
+} from "./sim/stops.ts";
 import { buildTrolley } from "./render/trolley.ts";
 import { CameraDirector } from "./camera/driveCamera.ts";
 import { InputManager } from "./input/input.ts";
@@ -45,7 +52,9 @@ scene.add(trolley.group);
 
 let trackIndex = 0;
 let path = new TrackPath(data.tracks[0].points);
+let limits = new SpeedLimitProfile(data.tracks[0].points, DEFAULT_SPEED_LIMIT);
 let state: TrolleyState = { s: 0, v: 0 };
+let stop: StopState = INITIAL_STOP;
 let reverse = false;
 
 function selectTrack(i: number): void {
@@ -53,9 +62,12 @@ function selectTrack(i: number): void {
   trackIndex = ((i % n) + n) % n;
   const t = data.tracks[trackIndex];
   path = new TrackPath(t.points);
+  limits = new SpeedLimitProfile(t.points, DEFAULT_SPEED_LIMIT);
   state = { s: 0, v: 0 };
+  stop = INITIAL_STOP;
   reverse = false;
   trolley.setColor(t.colorHex);
+  renderPicker();
 }
 
 input.onReverse = () => {
@@ -66,6 +78,26 @@ input.onMapToggle = () => director.toggleMap();
 input.onPrevLine = () => selectTrack(trackIndex - 1);
 input.onNextLine = () => selectTrack(trackIndex + 1);
 
+// --- Line picker ----------------------------------------------------------
+const picker = document.getElementById("picker") as HTMLDivElement;
+const pickerButtons: HTMLButtonElement[] = data.tracks.map((t, i) => {
+  const btn = document.createElement("button");
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  dot.style.background = t.colorHex;
+  const label = document.createElement("span");
+  label.textContent = `${t.shortName} · ${t.directionName || "dir " + t.directionId}`;
+  btn.append(dot, label);
+  btn.addEventListener("click", () => {
+    if (i !== trackIndex) selectTrack(i);
+  });
+  picker.appendChild(btn);
+  return btn;
+});
+function renderPicker(): void {
+  pickerButtons.forEach((b, i) => b.classList.toggle("active", i === trackIndex));
+}
+
 // --- HUD ------------------------------------------------------------------
 const hud = document.getElementById("hud") as HTMLDivElement;
 hud.innerHTML = `
@@ -73,22 +105,30 @@ hud.innerHTML = `
   <div id="hud-line"></div>
   <div id="hud-speed"></div>
   <div id="hud-next"></div>
+  <div class="doors" id="hud-doors"></div>
   <div class="hint" id="hud-view"></div>
   <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] change line · Space horn</div>
 `;
 const elLine = document.getElementById("hud-line") as HTMLDivElement;
 const elSpeed = document.getElementById("hud-speed") as HTMLDivElement;
 const elNext = document.getElementById("hud-next") as HTMLDivElement;
+const elDoors = document.getElementById("hud-doors") as HTMLDivElement;
 const elView = document.getElementById("hud-view") as HTMLDivElement;
 
 function fmtMeters(m: number): string {
   return m < 1000 ? `${m.toFixed(0)} m` : `${(m / 1000).toFixed(2)} km`;
 }
 
-function updateHud(): void {
+function updateHud(limit: number): void {
   const t = data.tracks[trackIndex];
   elLine.textContent = `${t.shortName} — ${t.directionName || "dir " + t.directionId} (${(t.lengthM / 1000).toFixed(1)} km)`;
-  elSpeed.textContent = `${(Math.abs(state.v) * 3.6).toFixed(0)} km/h${reverse ? "  ◀ REV" : ""}`;
+
+  const kmh = (Math.abs(state.v) * 3.6).toFixed(0);
+  const restricted = limit < DEFAULT_PARAMS.maxSpeed - 0.1;
+  const limitTag = restricted
+    ? ` <span class="limit">⚠ limit ${(limit * 3.6).toFixed(0)} km/h</span>`
+    : "";
+  elSpeed.innerHTML = `${kmh} km/h${reverse ? "  ◀ REV" : ""}${limitTag}`;
 
   let next: { name: string; distAlong: number } | undefined;
   if (reverse) {
@@ -99,6 +139,13 @@ function updateHud(): void {
   elNext.textContent = next
     ? `Next: ${next.name} (${fmtMeters(Math.abs(next.distAlong - state.s))})`
     : "Next: — end of line";
+
+  if (stop.doorsOpen) {
+    const at = t.stations[stop.stationIndex];
+    elDoors.textContent = `● DOORS OPEN — ${at ? at.name : ""} (${stop.dwellRemaining.toFixed(0)}s)`;
+  } else {
+    elDoors.textContent = "";
+  }
 
   elView.textContent = `View: ${director.view}`;
 }
@@ -118,13 +165,20 @@ function frame(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   input.update();
 
+  const limit = limits.limitAt(state.s);
+  // Hold the trolley while the doors are open (dwelling at a platform).
+  const throttle = stop.doorsOpen ? 0 : input.throttle;
+  const brake = stop.doorsOpen ? 1 : input.brake;
+
   state = stepTrolley(
     state,
     DEFAULT_PARAMS,
-    { throttle: input.throttle, brake: input.brake, reverse },
+    { throttle, brake, reverse },
     dt,
     path.length,
+    limit,
   );
+  stop = updateStop(stop, state, data.tracks[trackIndex].stations, DEFAULT_STOP_PARAMS, dt);
 
   const pos = path.positionAt(state.s);
   const heading = path.tangentAt(state.s);
@@ -132,7 +186,7 @@ function frame(): void {
   trolley.group.rotation.y = Math.atan2(heading.x, heading.z);
 
   director.follow(pos, heading);
-  updateHud();
+  updateHud(limit);
   renderer.render(scene, director.active);
   requestAnimationFrame(frame);
 }

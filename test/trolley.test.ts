@@ -47,6 +47,16 @@ describe("stepTrolley", () => {
     expect(out.v).toBeGreaterThan(DEFAULT_PARAMS.maxSpeed - 1);
   });
 
+  it("respects a curve speed limit below the vehicle top speed", () => {
+    let s: TrolleyState = { s: 0, v: 0 };
+    const limit = 8; // m/s
+    for (let t = 0; t < 40; t += 0.1) {
+      s = stepTrolley(s, DEFAULT_PARAMS, { ...idle, throttle: 1 }, 0.1, LENGTH, limit);
+    }
+    expect(s.v).toBeLessThanOrEqual(limit + 1e-9);
+    expect(s.v).toBeGreaterThan(limit - 1);
+  });
+
   it("coasts down due to drag", () => {
     const out = run({ s: 100, v: 20 }, idle, 5);
     expect(out.v).toBeLessThan(20);

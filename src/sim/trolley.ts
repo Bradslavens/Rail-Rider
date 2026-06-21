@@ -32,13 +32,19 @@ export const DEFAULT_PARAMS: TrolleyParams = {
   dragCoeff: 0.02,
 };
 
-/** Advance the trolley one timestep. Pure: returns a new state. */
+/**
+ * Advance the trolley one timestep. Pure: returns a new state.
+ *
+ * `speedLimit` (m/s) optionally caps the speed below the vehicle's top speed —
+ * e.g. a curve restriction. Applies in both directions of travel.
+ */
 export function stepTrolley(
   state: TrolleyState,
   params: TrolleyParams,
   input: ControlInput,
   dt: number,
   trackLength: number,
+  speedLimit: number = params.maxSpeed,
 ): TrolleyState {
   const dir = input.reverse ? -1 : 1;
   let v = state.v;
@@ -55,8 +61,9 @@ export function stepTrolley(
   // Drag.
   v -= v * params.dragCoeff * dt;
 
-  // Speed limit.
-  v = clamp(v, -params.maxSpeed, params.maxSpeed);
+  // Speed limit (vehicle top speed, further reduced by any curve restriction).
+  const vmax = Math.min(params.maxSpeed, speedLimit);
+  v = clamp(v, -vmax, vmax);
 
   // Integrate position; stop hard at either end of the line.
   let s = state.s + v * dt;

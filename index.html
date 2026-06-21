@@ -49,11 +49,55 @@
         color: #8b93a0;
         margin-top: 8px;
       }
+      #hud .doors {
+        margin: 6px 0;
+        font-weight: 600;
+        color: #2ecc71;
+      }
+      #hud .limit {
+        color: #f0a93b;
+      }
+      #picker {
+        position: fixed;
+        top: 12px;
+        right: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font: 12px/1.2 system-ui, sans-serif;
+        user-select: none;
+      }
+      #picker button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 9px;
+        border: 1px solid #1f2a36;
+        border-radius: 6px;
+        background: rgba(15, 19, 26, 0.82);
+        color: #cdd4de;
+        cursor: pointer;
+        text-align: left;
+      }
+      #picker button:hover {
+        border-color: #3a4a5c;
+      }
+      #picker button.active {
+        border-color: #cdd4de;
+        background: rgba(40, 50, 64, 0.92);
+      }
+      #picker .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+      }
     </style>
   </head>
   <body>
     <canvas id="app"></canvas>
     <div id="hud">Loading network…</div>
+    <div id="picker"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
