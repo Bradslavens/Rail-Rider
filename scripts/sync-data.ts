@@ -21,11 +21,12 @@ for (const f of FILES) {
   copyFileSync(src, resolve(DEST, f));
 }
 
-// Hand-authored runtime data (committed under data/, not pipeline output).
+// Optional files: hand-authored signals (data/) and OSM landmarks (pipeline/out).
 let extra = 0;
-const signals = resolve(DATA, "signals.json");
-if (existsSync(signals)) {
-  copyFileSync(signals, resolve(DEST, "signals.json"));
-  extra++;
+for (const src of [resolve(DATA, "signals.json"), resolve(OUT, "landmarks.json")]) {
+  if (existsSync(src)) {
+    copyFileSync(src, resolve(DEST, src.split("/").pop()!));
+    extra++;
+  }
 }
 console.log(`Synced ${FILES.length + extra} data files -> public/data`);

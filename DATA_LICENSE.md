@@ -15,6 +15,20 @@ centerlines are accurate but approximate (resampled and smoothed for the sim),
 and GTFS contains **no elevation, grade, tunnel, or signal data** — those are
 either modeled as flat or authored separately (see the signals plan).
 
+## Landmarks (buildings, roads, crossings, stations)
+
+Scenery landmarks are derived from **OpenStreetMap** via the **Overpass API**,
+pulled within a corridor around the rail lines.
+
+- **Source:** © OpenStreetMap contributors
+- **License:** Open Database License (**ODbL**) — https://www.openstreetmap.org/copyright
+- **Tool:** Overpass API — https://overpass-api.de/
+- **Regenerate:** `npm run landmarks` (optionally `-- --line Copper` for one line,
+  `-- --force` to bypass the `pipeline/raw` cache).
+
+Heights come from OSM `height` / `building:levels` tags where present, else a
+low-rise default; positions are reprojected with the same origin as the tracks.
+
 ## What is committed
 
 - `pipeline/raw/` — the downloaded GTFS zip and extracted files. **Not committed**

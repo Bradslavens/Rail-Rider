@@ -1,4 +1,4 @@
-import type { NetworkData, Track, Station, Meta, SignalSet } from "./types.ts";
+import type { NetworkData, Track, Station, Meta, SignalSet, LandmarksData } from "./types.ts";
 
 // Load the processed network JSON served from /data (synced from pipeline/out).
 export async function loadNetwork(): Promise<NetworkData> {
@@ -18,6 +18,18 @@ export async function loadSignals(): Promise<SignalSet> {
     return (await res.json()) as SignalSet;
   } catch {
     return { signals: [] };
+  }
+}
+
+/** Load OSM landmarks (buildings/roads/crossings/stations); tolerant. */
+export async function loadLandmarks(): Promise<LandmarksData> {
+  const empty: LandmarksData = { buildings: [], roads: [], crossings: [], stations: [] };
+  try {
+    const res = await fetch("/data/landmarks.json");
+    if (!res.ok) return empty;
+    return { ...empty, ...(await res.json()) } as LandmarksData;
+  } catch {
+    return empty;
   }
 }
 

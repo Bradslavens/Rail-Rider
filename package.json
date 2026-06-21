@@ -10,6 +10,7 @@
     "prebuild": "npm run sync:data",
     "preview": "vite preview --host",
     "pipeline": "node pipeline/src/gtfsToTracks.ts",
+    "landmarks": "node pipeline/src/landmarks.ts",
     "sync:data": "node scripts/sync-data.ts",
     "test": "vitest run",
     "test:watch": "vitest"

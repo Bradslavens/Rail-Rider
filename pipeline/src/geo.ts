@@ -39,3 +39,10 @@ export function project(p: LatLon, origin: LatLon): Vec2 {
   const z = -((p.lat - origin.lat) * DEG) * EARTH_RADIUS_M;
   return { x, z };
 }
+
+/** Inverse of {@link project}: local meters back to lat/lon about `origin`. */
+export function unproject(v: Vec2, origin: LatLon): LatLon {
+  const lat = origin.lat - v.z / (DEG * EARTH_RADIUS_M);
+  const lon = origin.lon + v.x / (DEG * Math.cos(origin.lat * DEG) * EARTH_RADIUS_M);
+  return { lat, lon };
+}

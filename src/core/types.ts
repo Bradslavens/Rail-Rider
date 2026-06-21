@@ -88,3 +88,35 @@ export interface PlacedSignal extends Signal {
   /** Yaw (radians) so the head faces the approaching (forward) train. */
   headingRad: number;
 }
+
+// --- Landmarks (OSM, item 3) ---------------------------------------------
+
+/** [x, z] in world meters. */
+export type Pt2 = [number, number];
+
+export interface Building {
+  /** Height in meters. */
+  h: number;
+  /** Footprint ring (outer), world meters. */
+  p: Pt2[];
+}
+
+export interface Road {
+  /** Carriageway width in meters. */
+  w: number;
+  /** Centreline polyline, world meters. */
+  p: Pt2[];
+}
+
+export interface LandmarkPoint {
+  x: number;
+  z: number;
+  name?: string;
+}
+
+export interface LandmarksData {
+  buildings: Building[];
+  roads: Road[];
+  crossings: LandmarkPoint[];
+  stations: LandmarkPoint[];
+}

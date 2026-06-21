@@ -1,6 +1,7 @@
 import * as THREE from "three";
-import { loadNetwork, loadSignals } from "./core/load.ts";
+import { loadNetwork, loadSignals, loadLandmarks } from "./core/load.ts";
 import { buildNetwork } from "./render/network.ts";
+import { buildLandmarks } from "./render/landmarks.ts";
 import { SignalEditor } from "./edit/signalEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import type { TrackPoint } from "./core/types.ts";
@@ -32,6 +33,10 @@ scene.add(sun);
 // --- Load network ---------------------------------------------------------
 const data = await loadNetwork();
 scene.add(buildNetwork(data).group);
+
+// OSM landmarks (buildings/roads) — tolerant of a missing file.
+const landmarks = await loadLandmarks();
+scene.add(buildLandmarks(landmarks));
 
 // Reference grid sized to the network (1 km cells).
 const span = Math.max(
