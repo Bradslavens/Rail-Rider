@@ -5,6 +5,7 @@ import { buildLandmarks } from "./render/landmarks.ts";
 import { CrossingsController } from "./render/crossings.ts";
 import { setupEnvironment } from "./render/environment.ts";
 import { buildTrack3D } from "./render/track3d.ts";
+import { setupPostFX } from "./render/postfx.ts";
 import { SignalEditor } from "./edit/signalEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import type { TrackPoint } from "./core/types.ts";
@@ -213,11 +214,13 @@ function updateHud(limit: number): void {
 }
 
 // --- Resize ---------------------------------------------------------------
+const postfx = setupPostFX(renderer, scene, director.active);
 function resize(): void {
   const w = window.innerWidth;
   const h = window.innerHeight;
   renderer.setSize(w, h, false);
   director.resize(w, h);
+  postfx.resize(w, h);
 }
 window.addEventListener("resize", resize);
 
@@ -260,7 +263,7 @@ function frame(): void {
   environment.update(focus);
   crossings.update(state.s, realDt, performance.now());
   updateHud(limit);
-  renderer.render(scene, director.active);
+  postfx.render(director.active);
   requestAnimationFrame(frame);
 }
 

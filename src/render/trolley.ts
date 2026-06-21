@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { BLOOM_LAYER } from "./bloomLayer.ts";
 
 export interface TrolleyMesh {
   group: THREE.Group;
@@ -80,9 +81,11 @@ export function buildTrolley(colorHex: string): TrolleyMesh {
   for (const dx of [-0.9, 0.9]) {
     const h = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.25), head);
     h.position.set(dx, 1.1, LEN / 2 + 0.05);
+    h.layers.enable(BLOOM_LAYER);
     group.add(h);
     const t = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.25), tail);
     t.position.set(dx, 1.1, -(LEN / 2 + 0.05));
+    t.layers.enable(BLOOM_LAYER);
     group.add(t);
   }
 

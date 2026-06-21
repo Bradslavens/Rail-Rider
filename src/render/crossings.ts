@@ -3,6 +3,7 @@ import type { LandmarkPoint, TrackPoint } from "../core/types.ts";
 import type { TrackPath } from "../sim/trackPath.ts";
 import { nearestOnPath } from "../edit/signalEdits.ts";
 import { gateClosed, DEFAULT_CROSSING, type CrossingParams } from "../sim/crossings.ts";
+import { BLOOM_LAYER } from "./bloomLayer.ts";
 
 const HALF_PI = Math.PI / 2;
 const POST_OFFSET = 7; // posts sit this far either side of the track centre
@@ -71,6 +72,7 @@ export class CrossingsController {
       const mat = new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff2a2a, emissiveIntensity: 0.1 });
       const lamp = new THREE.Mesh(lightGeo, mat);
       lamp.position.set(side * POST_OFFSET, 3.4, 0);
+      lamp.layers.enable(BLOOM_LAYER);
       group.add(lamp);
       lights.push(mat);
     }

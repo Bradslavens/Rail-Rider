@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { PlacedSignal, SignalAspect } from "../core/types.ts";
+import { BLOOM_LAYER } from "./bloomLayer.ts";
 
 const ASPECT_COLOR: Record<SignalAspect, number> = {
   red: 0xff2a2a,
@@ -56,6 +57,7 @@ export function buildSignals(placed: PlacedSignal[], selectedId?: string | null)
 
     const lamp = new THREE.Mesh(lampGeo, lampMats[s.aspect]);
     lamp.position.set(0, MAST_HEIGHT, 0.4); // on the face that looks at the train
+    lamp.layers.enable(BLOOM_LAYER);
     sig.add(lamp);
 
     if (s.id === selectedId) {
