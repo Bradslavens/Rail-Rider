@@ -4,6 +4,7 @@ import { buildNetwork } from "./render/network.ts";
 import { buildLandmarks } from "./render/landmarks.ts";
 import { CrossingsController } from "./render/crossings.ts";
 import { setupEnvironment } from "./render/environment.ts";
+import { buildTrack3D } from "./render/track3d.ts";
 import { SignalEditor } from "./edit/signalEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import type { TrackPoint } from "./core/types.ts";
@@ -56,6 +57,7 @@ let stop: StopState = INITIAL_STOP;
 let reverse = false;
 let scaleIndex = 0;
 let timeScale = TIME_SCALES[scaleIndex];
+let track3d: THREE.Group | null = null;
 
 function selectTrack(i: number): void {
   const n = data.tracks.length;
@@ -68,6 +70,18 @@ function selectTrack(i: number): void {
   reverse = false;
   trolley.setColor(t.colorHex);
   crossings.setActiveTrack(t.points, path);
+
+  // Rebuild the 3D permanent way for the active line.
+  if (track3d) {
+    scene.remove(track3d);
+    track3d.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.geometry) m.geometry.dispose();
+    });
+  }
+  track3d = buildTrack3D(t.points);
+  scene.add(track3d);
+
   renderPicker();
 }
 
