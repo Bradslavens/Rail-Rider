@@ -1,0 +1,25 @@
+import type { NetworkData, Track, Station, Meta } from "./types.ts";
+
+// Load the processed network JSON served from /data (synced from pipeline/out).
+export async function loadNetwork(): Promise<NetworkData> {
+  const [tracks, stations, meta] = await Promise.all([
+    fetchJson<Track[]>("/data/tracks.json"),
+    fetchJson<Station[]>("/data/stations.json"),
+    fetchJson<Meta>("/data/meta.json"),
+  ]);
+  return { tracks, stations, meta };
+}
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
+  return (await res.json()) as T;
+}
+
+/** Center of the network's bounding box, in world meters. */
+export function bboxCenter(meta: Meta): { x: number; z: number } {
+  return {
+    x: (meta.bbox.minX + meta.bbox.maxX) / 2,
+    z: (meta.bbox.minZ + meta.bbox.maxZ) / 2,
+  };
+}

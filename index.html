@@ -21,16 +21,39 @@
         position: fixed;
         top: 12px;
         left: 14px;
-        font: 13px/1.4 system-ui, sans-serif;
-        color: #aeb6c2;
+        font: 13px/1.5 system-ui, sans-serif;
+        color: #cdd4de;
         user-select: none;
         pointer-events: none;
+      }
+      #hud h1 {
+        font-size: 15px;
+        margin: 0 0 6px;
+        letter-spacing: 0.04em;
+      }
+      #hud .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 8px 0;
+      }
+      #hud .swatch {
+        display: inline-block;
+        width: 22px;
+        height: 4px;
+        border-radius: 2px;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      #hud .hint {
+        color: #8b93a0;
+        margin-top: 8px;
       }
     </style>
   </head>
   <body>
     <canvas id="app"></canvas>
-    <div id="hud">Rail Rider — Phase 0 scaffold</div>
+    <div id="hud">Loading network…</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -1,60 +1,78 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { loadNetwork } from "./core/load.ts";
+import { buildNetwork } from "./render/network.ts";
+import { CameraRig } from "./camera/cameras.ts";
 
 // --- Renderer -------------------------------------------------------------
 const canvas = document.getElementById("app") as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// --- Scene ----------------------------------------------------------------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b0e13);
 
-// --- Camera ---------------------------------------------------------------
-const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 2000);
-camera.position.set(8, 7, 12);
+// --- Load the network and build the scene --------------------------------
+const data = await loadNetwork();
+const { group, legend } = buildNetwork(data);
+scene.add(group);
 
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.target.set(0, 0.5, 0);
+const rig = new CameraRig(data.meta, canvas);
 
-// --- Lighting -------------------------------------------------------------
-scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-sun.position.set(10, 18, 6);
-scene.add(sun);
-
-// --- Ground grid ----------------------------------------------------------
-const grid = new THREE.GridHelper(100, 100, 0x335577, 0x1b2733);
+// Reference grid sized to the network (1 km cells).
+const maxSpan = Math.max(
+  data.meta.bbox.maxX - data.meta.bbox.minX,
+  data.meta.bbox.maxZ - data.meta.bbox.minZ,
+);
+const gridSize = Math.ceil(maxSpan / 1000) * 1000;
+const grid = new THREE.GridHelper(gridSize, gridSize / 1000, 0x1b2733, 0x141b24);
+grid.position.set(
+  (data.meta.bbox.minX + data.meta.bbox.maxX) / 2,
+  -2,
+  (data.meta.bbox.minZ + data.meta.bbox.maxZ) / 2,
+);
 scene.add(grid);
 
-// --- Placeholder "trolley" ------------------------------------------------
-const trolley = new THREE.Mesh(
-  new THREE.BoxGeometry(2.6, 1.4, 6),
-  new THREE.MeshStandardMaterial({ color: 0xda291c, roughness: 0.6 }),
-);
-trolley.position.y = 0.7;
-scene.add(trolley);
+// --- HUD ------------------------------------------------------------------
+const hud = document.getElementById("hud") as HTMLDivElement;
+function renderHud(): void {
+  const m = data.meta;
+  const swatches = legend
+    .map(
+      (l) =>
+        `<div><span class="swatch" style="background:${l.colorHex}"></span>${l.shortName}</div>`,
+    )
+    .join("");
+  hud.innerHTML = `
+    <h1>RAIL RIDER</h1>
+    <div>${m.trackCount} tracks · ${m.stationCount} stations · ${m.totalTrackKm} km</div>
+    <div class="legend">${swatches}</div>
+    <div class="hint">View: <strong>${rig.mode === "3d" ? "3D" : "Map (top-down)"}</strong> — press M to toggle</div>
+  `;
+}
+renderHud();
 
-// --- Resize handling ------------------------------------------------------
-function resize() {
+// --- Input ----------------------------------------------------------------
+window.addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() === "m") {
+    rig.toggle();
+    renderHud();
+  }
+});
+
+// --- Resize ---------------------------------------------------------------
+function resize(): void {
   const w = window.innerWidth;
   const h = window.innerHeight;
   renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  rig.resize(w, h);
 }
 window.addEventListener("resize", resize);
 resize();
 
-// --- Delta-timed render loop ---------------------------------------------
-const clock = new THREE.Clock();
-function frame() {
-  const dt = clock.getDelta();
-  // Gentle idle spin so it's visibly animating at the correct rate.
-  trolley.rotation.y += dt * 0.4;
-  controls.update();
-  renderer.render(scene, camera);
+// --- Render loop ----------------------------------------------------------
+function frame(): void {
+  rig.update();
+  renderer.render(scene, rig.active);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

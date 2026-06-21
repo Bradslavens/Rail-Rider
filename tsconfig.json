@@ -13,7 +13,8 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["vite/client", "vitest/globals"]
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "vitest/globals", "node"]
   },
   "include": ["src", "pipeline", "test"]
 }
