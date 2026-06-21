@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# GTFS pipeline working files (raw downloads are not committed; /out is)
+pipeline/raw/
