@@ -1,0 +1,22 @@
+{
+  "source": "San Diego MTS / SANDAG GTFS",
+  "sourceUrl": "https://www.sdmts.com/google_transit_files/google_transit.zip",
+  "feedVersion": "2601 unmerged v2 merged with Generated on 20260521 @ 1307142",
+  "fetchedAt": "2026-06-21",
+  "origin": {
+    "lat": 32.7482033251204,
+    "lon": -117.12769883046377
+  },
+  "earthRadiusM": 6371000,
+  "resampleSpacingM": 5,
+  "bbox": {
+    "minX": -10110.6,
+    "maxX": 14222.92,
+    "minZ": -14913.55,
+    "maxZ": 22661.13
+  },
+  "routeCount": 6,
+  "trackCount": 11,
+  "stationCount": 124,
+  "totalTrackKm": 260.92
+}

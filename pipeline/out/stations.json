@@ -1,0 +1,1174 @@
+[
+  {
+    "id": "75000",
+    "name": "San Ysidro Station",
+    "x": 9180.02,
+    "z": 22643.44,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75002",
+    "name": "Beyer Blvd Station",
+    "x": 7541.26,
+    "z": 21187.89,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75004",
+    "name": "Iris Avenue Station",
+    "x": 5660.15,
+    "z": 19841.77,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75006",
+    "name": "Palm Avenue Station",
+    "x": 4109.87,
+    "z": 18171.86,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75008",
+    "name": "Palomar Street Station",
+    "x": 3985.59,
+    "z": 16113.18,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75010",
+    "name": "H Street Station",
+    "x": 3004.06,
+    "z": 13123.83,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75012",
+    "name": "E Street Station",
+    "x": 2678.62,
+    "z": 12131.18,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75014",
+    "name": "24th Street Station",
+    "x": 1841.69,
+    "z": 9589.27,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75016",
+    "name": "8th Street Station",
+    "x": 1365.76,
+    "z": 8137.71,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75106",
+    "name": "Pacific Fleet Station",
+    "x": 271.95,
+    "z": 6905.7,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75104",
+    "name": "Harborside Station",
+    "x": -483.04,
+    "z": 6324.48,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75018",
+    "name": "Barrio Logan Station",
+    "x": -1773.74,
+    "z": 5568.24,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75102",
+    "name": "12th & Imperial Station",
+    "x": -2386.57,
+    "z": 4707.24,
+    "routeIds": [
+      "510",
+      "520"
+    ]
+  },
+  {
+    "id": "75092",
+    "name": "Park & Market Station",
+    "x": -2433.63,
+    "z": 4130.15,
+    "routeIds": [
+      "510",
+      "520"
+    ]
+  },
+  {
+    "id": "75090",
+    "name": "City College Station",
+    "x": -2475.89,
+    "z": 3548.71,
+    "routeIds": [
+      "510",
+      "520"
+    ]
+  },
+  {
+    "id": "75088",
+    "name": "Fifth Avenue Station",
+    "x": -2990.72,
+    "z": 3493,
+    "routeIds": [
+      "510",
+      "520"
+    ]
+  },
+  {
+    "id": "75087",
+    "name": "Civic Center Station",
+    "x": -3248,
+    "z": 3494.89,
+    "routeIds": [
+      "510",
+      "520"
+    ]
+  },
+  {
+    "id": "75085",
+    "name": "America Plaza Station",
+    "x": -3845.13,
+    "z": 3511.14,
+    "routeIds": [
+      "510",
+      "550"
+    ]
+  },
+  {
+    "id": "75083",
+    "name": "Santa Fe Depot",
+    "x": -3935.39,
+    "z": 3433.64,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75080",
+    "name": "County Center/Little Italy Station",
+    "x": -3946.51,
+    "z": 2969.96,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75078",
+    "name": "Middletown Station",
+    "x": -4416.46,
+    "z": 1603.15,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75076",
+    "name": "Washington Street Station",
+    "x": -5309.11,
+    "z": 720.47,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75042",
+    "name": "Old Town Station",
+    "x": -6713.73,
+    "z": -745.53,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "77771",
+    "name": "Tecolote Road Station",
+    "x": -7235.06,
+    "z": -2414.12,
+    "routeIds": [
+      "510",
+      "540"
+    ]
+  },
+  {
+    "id": "77773",
+    "name": "Clairemont Drive Station",
+    "x": -7334.89,
+    "z": -4654.75,
+    "routeIds": [
+      "510",
+      "540"
+    ]
+  },
+  {
+    "id": "77775",
+    "name": "Balboa Avenue Station",
+    "x": -8077.19,
+    "z": -6410.87,
+    "routeIds": [
+      "510",
+      "540"
+    ]
+  },
+  {
+    "id": "77778",
+    "name": "Nobel Drive Station",
+    "x": -9603.57,
+    "z": -13205.77,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77780",
+    "name": "VA Medical Center Station",
+    "x": -9550.34,
+    "z": -14016.11,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77782",
+    "name": "UCSD Central Campus Station",
+    "x": -9733.7,
+    "z": -14481.74,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77784",
+    "name": "UCSD Health La Jolla Station",
+    "x": -8958.69,
+    "z": -14857.09,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77786",
+    "name": "Executive Drive Station",
+    "x": -8075.64,
+    "z": -14003.04,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77787",
+    "name": "UTC Station",
+    "x": -8071.99,
+    "z": -13454.7,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77785",
+    "name": "Executive Drive Station",
+    "x": -8073.3,
+    "z": -14006.64,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77783",
+    "name": "UCSD Health La Jolla Station",
+    "x": -8968.56,
+    "z": -14866.6,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77781",
+    "name": "UCSD Central Campus Station",
+    "x": -9740.06,
+    "z": -14465.11,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77779",
+    "name": "VA Medical Center Station",
+    "x": -9560.74,
+    "z": -14005.07,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77776",
+    "name": "Nobel Drive Station",
+    "x": -9610.53,
+    "z": -13194.21,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77774",
+    "name": "Balboa Avenue Station",
+    "x": -8076.58,
+    "z": -6397.55,
+    "routeIds": [
+      "510",
+      "540"
+    ]
+  },
+  {
+    "id": "77772",
+    "name": "Clairemont Drive Station",
+    "x": -7340.32,
+    "z": -4645.32,
+    "routeIds": [
+      "510",
+      "540"
+    ]
+  },
+  {
+    "id": "77770",
+    "name": "Tecolote Road Station",
+    "x": -7237.57,
+    "z": -2402.79,
+    "routeIds": [
+      "510",
+      "540"
+    ]
+  },
+  {
+    "id": "75043",
+    "name": "Old Town Station",
+    "x": -6719.42,
+    "z": -722.06,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75077",
+    "name": "Washington Street Station",
+    "x": -5292.48,
+    "z": 740.71,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75079",
+    "name": "Middletown Station",
+    "x": -4404.3,
+    "z": 1633.39,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75081",
+    "name": "County Center/Little Italy Station",
+    "x": -3954.65,
+    "z": 2984.51,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75082",
+    "name": "Santa Fe Depot",
+    "x": -3943.05,
+    "z": 3433.52,
+    "routeIds": [
+      "510",
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75084",
+    "name": "America Plaza Station",
+    "x": -3844.86,
+    "z": 3537.94,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75086",
+    "name": "Civic Center Station",
+    "x": -3251.92,
+    "z": 3501.9,
+    "routeIds": [
+      "510",
+      "520",
+      "550"
+    ]
+  },
+  {
+    "id": "75089",
+    "name": "Fifth Avenue Station",
+    "x": -2994.67,
+    "z": 3500.34,
+    "routeIds": [
+      "510",
+      "520",
+      "550"
+    ]
+  },
+  {
+    "id": "75091",
+    "name": "City College Station",
+    "x": -2480.48,
+    "z": 3555.26,
+    "routeIds": [
+      "510",
+      "520",
+      "550"
+    ]
+  },
+  {
+    "id": "75093",
+    "name": "Park & Market Station",
+    "x": -2441.09,
+    "z": 4145.71,
+    "routeIds": [
+      "510",
+      "520",
+      "550"
+    ]
+  },
+  {
+    "id": "75103",
+    "name": "12th & Imperial Station",
+    "x": -2396.68,
+    "z": 4716.71,
+    "routeIds": [
+      "510",
+      "520",
+      "550"
+    ]
+  },
+  {
+    "id": "75019",
+    "name": "Barrio Logan Station",
+    "x": -1754.18,
+    "z": 5595.02,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75105",
+    "name": "Harborside Station",
+    "x": -462,
+    "z": 6343.83,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75107",
+    "name": "Pacific Fleet Station",
+    "x": 286.34,
+    "z": 6928.59,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75017",
+    "name": "8th Street Station",
+    "x": 1366.99,
+    "z": 8169.52,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75015",
+    "name": "24th Street Station",
+    "x": 1841.77,
+    "z": 9618.28,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75013",
+    "name": "E Street Station",
+    "x": 2677.76,
+    "z": 12160.1,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75011",
+    "name": "H Street Station",
+    "x": 3004.53,
+    "z": 13155.52,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75009",
+    "name": "Palomar Street Station",
+    "x": 3985.01,
+    "z": 16142.86,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75007",
+    "name": "Palm Avenue Station",
+    "x": 4099.87,
+    "z": 18208.09,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75005",
+    "name": "Iris Avenue Station",
+    "x": 5679.91,
+    "z": 19869.24,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "75003",
+    "name": "Beyer Blvd Station",
+    "x": 7562.1,
+    "z": 21210.47,
+    "routeIds": [
+      "510"
+    ]
+  },
+  {
+    "id": "77790",
+    "name": "El Cajon Station",
+    "x": 14177.38,
+    "z": -4962.96,
+    "routeIds": [
+      "535"
+    ]
+  },
+  {
+    "id": "75024",
+    "name": "Arnele Avenue Station",
+    "x": 14216.5,
+    "z": -6277.82,
+    "routeIds": [
+      "535"
+    ]
+  },
+  {
+    "id": "75022",
+    "name": "Gillespie Field Station",
+    "x": 13618.45,
+    "z": -8761.34,
+    "routeIds": [
+      "535"
+    ]
+  },
+  {
+    "id": "75020",
+    "name": "Santee Town Center Station",
+    "x": 13707.11,
+    "z": -10380.58,
+    "routeIds": [
+      "535"
+    ]
+  },
+  {
+    "id": "75023",
+    "name": "Gillespie Field Station",
+    "x": 13622.01,
+    "z": -8735.54,
+    "routeIds": [
+      "535"
+    ]
+  },
+  {
+    "id": "75025",
+    "name": "Arnele Avenue Station",
+    "x": 14208.27,
+    "z": -6258.69,
+    "routeIds": [
+      "535"
+    ]
+  },
+  {
+    "id": "75100",
+    "name": "12th & Imperial Station (Bayside)",
+    "x": -2450.36,
+    "z": 4777.97,
+    "routeIds": [
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75098",
+    "name": "Gaslamp Quarter Station",
+    "x": -2998.67,
+    "z": 4588.05,
+    "routeIds": [
+      "540",
+      "530",
+      "550"
+    ]
+  },
+  {
+    "id": "75096",
+    "name": "Convention Center Station",
+    "x": -3344.71,
+    "z": 4361.33,
+    "routeIds": [
+      "540",
+      "530",
+      "550"
+    ]
+  },
+  {
+    "id": "75095",
+    "name": "Seaport Village Station",
+    "x": -3827,
+    "z": 4025.52,
+    "routeIds": [
+      "540",
+      "530",
+      "550"
+    ]
+  },
+  {
+    "id": "75094",
+    "name": "Seaport Village Station",
+    "x": -3811.3,
+    "z": 4054.54,
+    "routeIds": [
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75097",
+    "name": "Convention Center Station",
+    "x": -3331.33,
+    "z": 4379.24,
+    "routeIds": [
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75099",
+    "name": "Gaslamp Quarter Station",
+    "x": -2983.36,
+    "z": 4607.72,
+    "routeIds": [
+      "540",
+      "530"
+    ]
+  },
+  {
+    "id": "75044",
+    "name": "Morena/Linda Vista Station",
+    "x": -6439.79,
+    "z": -1703.92,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75047",
+    "name": "Fashion Valley Station",
+    "x": -3853.66,
+    "z": -1918.09,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75048",
+    "name": "Hazard Center Station",
+    "x": -2848.01,
+    "z": -2452.27,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75050",
+    "name": "Mission Valley Center Station",
+    "x": -2072.17,
+    "z": -2544.11,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75053",
+    "name": "Rio Vista Station",
+    "x": -1309.3,
+    "z": -2826.3,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75055",
+    "name": "Fenton Parkway Station",
+    "x": 64.6,
+    "z": -3354.39,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75056",
+    "name": "Stadium Station",
+    "x": 767.51,
+    "z": -3638.93,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75059",
+    "name": "Mission San Diego Station",
+    "x": 1563.65,
+    "z": -3626.13,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75060",
+    "name": "Union Grantville Station",
+    "x": 2835.08,
+    "z": -3579.87,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75063",
+    "name": "SDSU Station",
+    "x": 5361.27,
+    "z": -2775.6,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75064",
+    "name": "UCSD Health East Station",
+    "x": 6639.24,
+    "z": -3236.41,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75032",
+    "name": "70th Street Station",
+    "x": 7987.06,
+    "z": -2662.42,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75030",
+    "name": "Grossmont Station",
+    "x": 10888.84,
+    "z": -3718.22,
+    "routeIds": [
+      "530",
+      "520"
+    ]
+  },
+  {
+    "id": "75029",
+    "name": "Amaya Drive Station",
+    "x": 11792.35,
+    "z": -4137.54,
+    "routeIds": [
+      "530",
+      "520"
+    ]
+  },
+  {
+    "id": "75026",
+    "name": "El Cajon Station",
+    "x": 14174.05,
+    "z": -4877.18,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75028",
+    "name": "Amaya Drive Station",
+    "x": 11768.31,
+    "z": -4137.18,
+    "routeIds": [
+      "530",
+      "520"
+    ]
+  },
+  {
+    "id": "75031",
+    "name": "Grossmont Station",
+    "x": 10869.85,
+    "z": -3714.44,
+    "routeIds": [
+      "530",
+      "520"
+    ]
+  },
+  {
+    "id": "75033",
+    "name": "70th Street Station",
+    "x": 7969.38,
+    "z": -2678.33,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75065",
+    "name": "UCSD Health East Station",
+    "x": 6619.49,
+    "z": -3248.97,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75062",
+    "name": "SDSU Station",
+    "x": 5336.38,
+    "z": -2787.85,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75061",
+    "name": "Union Grantville Station",
+    "x": 2818.7,
+    "z": -3595.66,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75058",
+    "name": "Mission San Diego Station",
+    "x": 1551.88,
+    "z": -3644.92,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75057",
+    "name": "Stadium Station",
+    "x": 747.04,
+    "z": -3649.61,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75054",
+    "name": "Fenton Parkway Station",
+    "x": 43.18,
+    "z": -3343.26,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75052",
+    "name": "Rio Vista Station",
+    "x": -1334.38,
+    "z": -2827.65,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75051",
+    "name": "Mission Valley Center Station",
+    "x": -2098.26,
+    "z": -2545.23,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75049",
+    "name": "Hazard Center Station",
+    "x": -2872.14,
+    "z": -2450.13,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75046",
+    "name": "Fashion Valley Station",
+    "x": -3876.74,
+    "z": -1920.08,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75045",
+    "name": "Morena/Linda Vista Station",
+    "x": -6467.02,
+    "z": -1710.49,
+    "routeIds": [
+      "530"
+    ]
+  },
+  {
+    "id": "75109",
+    "name": "Courthouse Station",
+    "x": -3584.18,
+    "z": 3501.28,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75074",
+    "name": "25th & Commercial St Station",
+    "x": -1031.74,
+    "z": 4773.2,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75073",
+    "name": "32nd/Commercial St Station",
+    "x": 296.92,
+    "z": 4717.59,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75070",
+    "name": "47th Street Station",
+    "x": 3074.95,
+    "z": 4421.58,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75069",
+    "name": "Euclid Ave Station",
+    "x": 3922.07,
+    "z": 4302.83,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75067",
+    "name": "Encanto/62nd St Station",
+    "x": 6040.43,
+    "z": 4238.68,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75040",
+    "name": "Massachusetts Ave Station",
+    "x": 8249.49,
+    "z": 2740.32,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75038",
+    "name": "Lemon Grove Depot",
+    "x": 9075.75,
+    "z": 525,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75036",
+    "name": "Spring Street Station",
+    "x": 10316.68,
+    "z": -967.82,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75034",
+    "name": "La Mesa Blvd Station",
+    "x": 10019.28,
+    "z": -1882.93,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75027",
+    "name": "El Cajon Station",
+    "x": 14166.77,
+    "z": -4856.5,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75035",
+    "name": "La Mesa Blvd Station",
+    "x": 10022.45,
+    "z": -1857.15,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75037",
+    "name": "Spring Street Station",
+    "x": 10303.02,
+    "z": -950.78,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75039",
+    "name": "Lemon Grove Depot",
+    "x": 9063.68,
+    "z": 545.66,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75041",
+    "name": "Massachusetts Ave Station",
+    "x": 8231.63,
+    "z": 2751.12,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75066",
+    "name": "Encanto/62nd St Station",
+    "x": 6016.95,
+    "z": 4233.55,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75068",
+    "name": "Euclid Ave Station",
+    "x": 3887.65,
+    "z": 4294.28,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75071",
+    "name": "47th Street Station",
+    "x": 3051.29,
+    "z": 4420.58,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75072",
+    "name": "32nd/Commercial St Station",
+    "x": 275.5,
+    "z": 4718.38,
+    "routeIds": [
+      "520"
+    ]
+  },
+  {
+    "id": "75075",
+    "name": "25th & Commercial St Station",
+    "x": -1258.34,
+    "z": 4771.75,
+    "routeIds": [
+      "520"
+    ]
+  }
+]
