@@ -15,6 +15,7 @@ export class InputManager {
   onNextLine?: () => void;
   onSpeedUp?: () => void;
   onSpeedDown?: () => void;
+  onEditToggle?: () => void;
 
   constructor() {
     window.addEventListener("keydown", (e) => {
@@ -27,6 +28,7 @@ export class InputManager {
         else if (k === "]") this.onNextLine?.();
         else if (k === "." || k === ">") this.onSpeedUp?.();
         else if (k === "," || k === "<") this.onSpeedDown?.();
+        else if (k === "e") this.onEditToggle?.();
       }
       this.keys.add(k);
     });

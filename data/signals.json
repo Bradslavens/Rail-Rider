@@ -1,5 +1,5 @@
 {
-  "note": "Signal NAMES are real MTS Blue Line signals taken from the line schematic (shared signal data, also used by TrolleyGames). Positions (distM = metres along the GTFS shape) are HAND-PLACED approximations for the Phase 5 foundation — exact milepost->distance mapping and a full editor are deferred. Aspects are static placeholders until scenario scripting (Phase 6+).",
+  "note": "Signal NAMES are real MTS Blue Line signals taken from the line schematic (shared signal data, also used by TrolleyGames). Positions (distM = metres along the GTFS shape) are hand-placed approximations; tune them with the in-app signal editor (press E), which writes back to this file via the dev server. Aspects are static placeholders until scenario scripting.",
   "signals": [
     { "id": "blue-n-01", "name": "E12RA", "shapeId": "S2_510_0_352", "distM": 6000, "side": "R", "aspect": "green" },
     { "id": "blue-n-02", "name": "E11B", "shapeId": "S2_510_0_352", "distM": 12000, "side": "R", "aspect": "green" },

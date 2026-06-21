@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { loadNetwork, loadSignals } from "./core/load.ts";
 import { buildNetwork } from "./render/network.ts";
-import { buildSignals } from "./render/signals.ts";
-import { placeSignals } from "./sim/signals.ts";
+import { SignalEditor } from "./edit/signalEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
+import type { TrackPoint } from "./core/types.ts";
 import { stepTrolley, DEFAULT_PARAMS, type TrolleyState } from "./sim/trolley.ts";
 import { planSubsteps, FIXED_DT, TIME_SCALES } from "./sim/clock.ts";
 import { SpeedLimitProfile, DEFAULT_SPEED_LIMIT } from "./sim/speedLimit.ts";
@@ -32,18 +32,6 @@ scene.add(sun);
 // --- Load network ---------------------------------------------------------
 const data = await loadNetwork();
 scene.add(buildNetwork(data).group);
-
-// --- Signals (Phase 5 foundation) ----------------------------------------
-// Build paths only for the shapes signals actually reference, then resolve
-// each signal to a world position and render the lot once.
-const signalSet = await loadSignals();
-const usedShapes = new Set(signalSet.signals.map((s) => s.shapeId));
-const signalPaths = new Map<string, TrackPath>();
-for (const t of data.tracks) {
-  if (usedShapes.has(t.shapeId)) signalPaths.set(t.shapeId, new TrackPath(t.points));
-}
-const placedSignals = placeSignals(signalSet.signals, signalPaths);
-scene.add(buildSignals(placedSignals));
 
 // Reference grid sized to the network (1 km cells).
 const span = Math.max(
@@ -103,6 +91,29 @@ input.onSpeedDown = () => {
   timeScale = TIME_SCALES[scaleIndex];
 };
 
+// --- Signals + in-app editor ---------------------------------------------
+// The editor owns the rendered signal group (placing them from the working
+// list and rebuilding on edits). One TrackPath/points map per shape lets
+// signals be moved/added on any line.
+const signalSet = await loadSignals();
+const pathsByShape = new Map<string, TrackPath>();
+const pointsByShape = new Map<string, TrackPoint[]>();
+for (const t of data.tracks) {
+  pathsByShape.set(t.shapeId, new TrackPath(t.points));
+  pointsByShape.set(t.shapeId, t.points);
+}
+const editor = new SignalEditor({
+  scene,
+  domElement: canvas,
+  panel: document.getElementById("editor") as HTMLDivElement,
+  getCamera: () => director.active,
+  pathsByShape,
+  pointsByShape,
+  getActiveShapeId: () => data.tracks[trackIndex].shapeId,
+  set: signalSet,
+});
+input.onEditToggle = () => editor.toggle();
+
 // --- Line picker ----------------------------------------------------------
 const picker = document.getElementById("picker") as HTMLDivElement;
 const pickerButtons: HTMLButtonElement[] = data.tracks.map((t, i) => {
@@ -133,7 +144,7 @@ hud.innerHTML = `
   <div id="hud-signal"></div>
   <div class="doors" id="hud-doors"></div>
   <div class="hint" id="hud-view"></div>
-  <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] line · , . sim speed · Space horn</div>
+  <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] line · , . sim speed · E edit signals</div>
 `;
 const elLine = document.getElementById("hud-line") as HTMLDivElement;
 const elSpeed = document.getElementById("hud-speed") as HTMLDivElement;
@@ -172,7 +183,7 @@ function updateHud(limit: number): void {
   // Nearest signal ahead on the current shape (signals only face forward travel).
   let sig: { name: string; aspect: string; distM: number } | undefined;
   if (!reverse) {
-    for (const s of placedSignals) {
+    for (const s of editor.placed) {
       if (s.shapeId !== t.shapeId || s.distM <= state.s + 1) continue;
       if (!sig || s.distM < sig.distM) sig = s;
     }
