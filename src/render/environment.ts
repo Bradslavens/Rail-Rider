@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { Sky } from "three/examples/jsm/objects/Sky.js";
 import { loadTextureSet } from "./textures.ts";
 
 export interface Environment {
@@ -7,38 +6,65 @@ export interface Environment {
   update(focus: THREE.Vector3): void;
 }
 
+const SKY_VERT = `
+  varying vec3 vWorldPosition;
+  void main() {
+    vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const SKY_FRAG = `
+  uniform vec3 topColor;
+  uniform vec3 horizonColor;
+  uniform float exponent;
+  varying vec3 vWorldPosition;
+  void main() {
+    float h = normalize(vWorldPosition).y;
+    float t = pow(max(h, 0.0), exponent);
+    gl_FragColor = vec4(mix(horizonColor, topColor, t), 1.0);
+  }
+`;
+
 /**
- * Daytime lighting and atmosphere: a physical sky, a sun casting soft shadows
- * (its shadow camera follows the trolley so we get crisp shadows without
- * covering the whole 260 km network), hemisphere fill, distance fog, and a
- * ground plane. Tone mapping ties it together.
+ * Daytime lighting and atmosphere: a vivid gradient sky dome, a sun casting
+ * soft shadows (its shadow camera follows the trolley so we get crisp shadows
+ * without covering the whole 260 km network), hemisphere fill, distance fog,
+ * and a ground plane. Tone mapping ties it together.
  */
 export function setupEnvironment(scene: THREE.Scene, renderer: THREE.WebGLRenderer): Environment {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
+  renderer.toneMappingExposure = 1.1;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // Physical sky + sun direction.
-  const sky = new Sky();
-  sky.scale.setScalar(450000);
-  scene.add(sky);
-  const u = sky.material.uniforms;
-  u.turbidity.value = 4;
-  u.rayleigh.value = 3;
-  u.mieCoefficient.value = 0.005;
-  u.mieDirectionalG.value = 0.8;
+  // Sun direction (also drives the sky-gradient lean and the shadow light).
   const elevation = 48;
   const azimuth = 135;
   const phi = THREE.MathUtils.degToRad(90 - elevation);
   const theta = THREE.MathUtils.degToRad(azimuth);
   const sunDir = new THREE.Vector3().setFromSphericalCoords(1, phi, theta);
-  u.sunPosition.value.copy(sunDir);
 
-  // Atmosphere: haze that fades distant buildings into the horizon.
-  const horizon = new THREE.Color(0xc3d2dd);
-  scene.fog = new THREE.Fog(horizon, 500, 5000);
-  scene.background = horizon;
+  // Vivid gradient sky dome (deep blue zenith -> pale horizon).
+  const topColor = new THREE.Color(0x2f7ff0);
+  const horizon = new THREE.Color(0xcfe6f7);
+  const skyMat = new THREE.ShaderMaterial({
+    uniforms: {
+      topColor: { value: topColor },
+      horizonColor: { value: horizon },
+      exponent: { value: 0.55 },
+    },
+    vertexShader: SKY_VERT,
+    fragmentShader: SKY_FRAG,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+  });
+  const skyDome = new THREE.Mesh(new THREE.SphereGeometry(120000, 32, 16), skyMat);
+  scene.add(skyDome);
+
+  // Distance haze fades buildings into the horizon colour.
+  scene.fog = new THREE.Fog(horizon, 600, 5500);
+  scene.background = horizon.clone();
 
   // Lights.
   scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x47433a, 0.85));
