@@ -96,7 +96,7 @@ export function buildTrack3D(points: TrackPoint[]): THREE.Group {
     if (f.dist < nextTie) continue;
     nextTie = f.dist + TIE_SPACING;
     const g = tieGeo.clone();
-    g.rotateY(Math.atan2(f.px, f.pz)); // align across the track
+    g.rotateY(Math.atan2(f.px, f.pz) + Math.PI / 2); // perpendicular to the rails
     g.translate(f.x, 0.14, f.z);
     tieGeos.push(g);
   }

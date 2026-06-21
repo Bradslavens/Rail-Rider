@@ -89,7 +89,7 @@ export class CrossingsController {
       n.onLine = near.offset <= this.params.onlineOffsetM;
       n.distM = near.distM;
       n.group.visible = n.onLine;
-      if (n.onLine) n.group.rotation.y = path.headingAt(near.distM);
+      if (n.onLine) n.group.rotation.y = path.headingAt(near.distM) - Math.PI / 2;
     }
   }
 
