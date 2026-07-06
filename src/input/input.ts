@@ -4,6 +4,11 @@
 // actions (reverse, camera, map, change line) fire callbacks on the rising
 // edge so a single press triggers once.
 
+function isFormField(target: EventTarget | null): boolean {
+  const tag = target instanceof HTMLElement ? target.tagName : "";
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
 export class InputManager {
   private readonly keys = new Set<string>();
   private prevButtons: boolean[] = [];
@@ -19,6 +24,9 @@ export class InputManager {
 
   constructor() {
     window.addEventListener("keydown", (e) => {
+      // Ignore keystrokes aimed at the admin editor's form fields, so typing
+      // a name (or pasting a signal list) never drives or toggles anything.
+      if (isFormField(e.target)) return;
       const k = e.key.toLowerCase();
       if (!this.keys.has(k)) {
         if (k === "r") this.onReverse?.();

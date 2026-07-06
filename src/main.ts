@@ -1,12 +1,18 @@
 import * as THREE from "three";
-import { loadNetwork, loadSignals, loadLandmarks } from "./core/load.ts";
+import {
+  loadNetwork,
+  loadSignals,
+  loadLandmarks,
+  loadStationEdits,
+  loadCrossingEdits,
+} from "./core/load.ts";
 import { buildNetwork } from "./render/network.ts";
 import { buildLandmarks } from "./render/landmarks.ts";
 import { CrossingsController } from "./render/crossings.ts";
 import { setupEnvironment } from "./render/environment.ts";
 import { buildTrack3D } from "./render/track3d.ts";
 import { setupPostFX } from "./render/postfx.ts";
-import { SignalEditor } from "./edit/signalEditor.ts";
+import { AdminEditor } from "./edit/adminEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
 import type { TrackPoint } from "./core/types.ts";
 import { stepTrolley, DEFAULT_PARAMS, type TrolleyState } from "./sim/trolley.ts";
@@ -34,7 +40,8 @@ const environment = setupEnvironment(scene, renderer);
 const data = await loadNetwork();
 scene.add(buildNetwork(data).group);
 
-// OSM landmarks (buildings/roads) — tolerant of a missing file.
+// OSM landmarks (buildings/roads) — tolerant of a missing file. Crossing
+// positions arrive with data/crossingEdits.json overrides already applied.
 const landmarks = await loadLandmarks();
 scene.add(buildLandmarks(landmarks));
 const crossings = new CrossingsController(landmarks.crossings);
@@ -90,7 +97,11 @@ function selectTrack(i: number): void {
   scene.add(track3d);
 
   renderPicker();
+  refreshEditor();
 }
+
+// Rebound to the admin editor once it exists (selectTrack runs before then).
+let refreshEditor: () => void = () => {};
 
 input.onReverse = () => {
   reverse = !reverse;
@@ -109,18 +120,24 @@ input.onSpeedDown = () => {
   timeScale = TIME_SCALES[scaleIndex];
 };
 
-// --- Signals + in-app editor ---------------------------------------------
+// --- Signals + in-app admin editor -----------------------------------------
 // The editor owns the rendered signal group (placing them from the working
-// list and rebuilding on edits). One TrackPath/points map per shape lets
-// signals be moved/added on any line.
-const signalSet = await loadSignals();
+// list and rebuilding on edits) and, in admin mode, draggable station and
+// crossing markers. One TrackPath/points map per shape lets objects be
+// moved/added on any line. The saved override sets are passed in so a Save
+// keeps earlier station/crossing edits intact.
+const [signalSet, stationEdits, crossingEdits] = await Promise.all([
+  loadSignals(),
+  loadStationEdits(),
+  loadCrossingEdits(),
+]);
 const pathsByShape = new Map<string, TrackPath>();
 const pointsByShape = new Map<string, TrackPoint[]>();
 for (const t of data.tracks) {
   pathsByShape.set(t.shapeId, new TrackPath(t.points));
   pointsByShape.set(t.shapeId, t.points);
 }
-const editor = new SignalEditor({
+const editor = new AdminEditor({
   scene,
   domElement: canvas,
   panel: document.getElementById("editor") as HTMLDivElement,
@@ -129,8 +146,13 @@ const editor = new SignalEditor({
   pointsByShape,
   getActiveShapeId: () => data.tracks[trackIndex].shapeId,
   set: signalSet,
+  tracks: data.tracks,
+  stationEdits,
+  crossings: landmarks.crossings,
+  crossingEdits,
 });
 input.onEditToggle = () => editor.toggle();
+refreshEditor = () => editor.refresh();
 
 // --- Line picker ----------------------------------------------------------
 const picker = document.getElementById("picker") as HTMLDivElement;
@@ -162,7 +184,7 @@ hud.innerHTML = `
   <div id="hud-signal"></div>
   <div class="doors" id="hud-doors"></div>
   <div class="hint" id="hud-view"></div>
-  <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] line · , . sim speed · E edit signals</div>
+  <div class="hint">↑/W throttle · ↓/S brake · R reverse · C cab/chase · M map · [ ] line · , . sim speed · E admin editor</div>
 `;
 const elLine = document.getElementById("hud-line") as HTMLDivElement;
 const elSpeed = document.getElementById("hud-speed") as HTMLDivElement;
