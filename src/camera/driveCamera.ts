@@ -19,6 +19,10 @@ export class CameraDirector {
   private readonly spanZ: number;
   private readonly margin = 1.1;
   private readonly target = new THREE.Vector3();
+  private readonly desiredPos = new THREE.Vector3();
+  private readonly desiredTarget = new THREE.Vector3();
+  /** Smoothed-follow state; snapped on the first frame and on view changes. */
+  private smoothed = false;
 
   constructor(meta: Meta) {
     const { bbox } = meta;
@@ -44,6 +48,7 @@ export class CameraDirector {
   cycleDriveView(): DriveView {
     this.view = this.view === "cab" ? "chase" : "cab";
     this.lastDrive = this.view;
+    this.smoothed = false;
     return this.view;
   }
 
@@ -58,19 +63,35 @@ export class CameraDirector {
     return this.view;
   }
 
-  /** Position the chase/cab camera from the trolley's pose. */
-  follow(pos: Vec2, heading: Vec2): void {
+  /**
+   * Position the chase/cab camera from the trolley's pose. The camera eases
+   * exponentially toward its desired framing (frame-rate independent), which
+   * filters any residual heading wobble out of the ride; `dt` of 0 snaps.
+   */
+  follow(pos: Vec2, heading: Vec2, dt = 0): void {
     const fx = heading.x;
     const fz = heading.z;
+    let rate: number;
     if (this.view === "cab") {
       // Just ahead of the nose (body spans ±12 m), at driver eye height.
-      this.perspective.position.set(pos.x + fx * 13.5, 3.0, pos.z + fz * 13.5);
-      this.target.set(pos.x + fx * 120, 2.6, pos.z + fz * 120);
+      this.desiredPos.set(pos.x + fx * 13.5, 3.0, pos.z + fz * 13.5);
+      this.desiredTarget.set(pos.x + fx * 120, 2.6, pos.z + fz * 120);
+      rate = 14; // tight — the cab must stay glued to the windshield
     } else {
       // Well back and above so the whole 3-car consist sits in frame
       // (the train extends ~60 m behind the lead car's center).
-      this.perspective.position.set(pos.x - fx * 88, 15, pos.z - fz * 88);
-      this.target.set(pos.x + fx * 8, 4, pos.z + fz * 8);
+      this.desiredPos.set(pos.x - fx * 88, 15, pos.z - fz * 88);
+      this.desiredTarget.set(pos.x + fx * 8, 4, pos.z + fz * 8);
+      rate = 5; // soft — a distant chase rig can trail the train
+    }
+    if (this.smoothed && dt > 0) {
+      const k = 1 - Math.exp(-rate * dt);
+      this.perspective.position.lerp(this.desiredPos, k);
+      this.target.lerp(this.desiredTarget, k);
+    } else {
+      this.perspective.position.copy(this.desiredPos);
+      this.target.copy(this.desiredTarget);
+      this.smoothed = true;
     }
     this.perspective.lookAt(this.target);
   }

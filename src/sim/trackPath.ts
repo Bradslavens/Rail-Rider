@@ -10,6 +10,13 @@ export interface Vec2 {
  * A drivable path along a track. Wraps the resampled points (each carrying its
  * cumulative `dist`) and answers "where am I / which way am I facing" for a
  * given arc-length position `s` in meters.
+ *
+ * Sampling runs through a uniform Catmull-Rom spline over the points instead
+ * of the raw polyline (Factorio-style: vehicles must never ride a tangent
+ * kink). The spline passes through every point, degrades to exact linear
+ * interpolation on straight runs, and gives a continuously turning tangent
+ * through corners. `s` remains the polyline's chord parameterization — the
+ * spline's true arc length differs by a negligible amount at GTFS scales.
  */
 export class TrackPath {
   readonly length: number;
@@ -35,24 +42,72 @@ export class TrackPath {
     return lo;
   }
 
-  /** World position at arc-length `s`. */
-  positionAt(s: number): Vec2 {
-    const target = clamp(s, 0, this.length);
-    const i = this.segmentIndex(target);
+  /**
+   * Catmull-Rom control points for segment `i`. Endpoints get reflected
+   * phantom neighbors, which keeps straight end segments exactly linear.
+   */
+  private controls(i: number): [Vec2, TrackPoint, TrackPoint, Vec2] {
+    const pts = this.points;
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p0: Vec2 =
+      i > 0 ? pts[i - 1] : { x: 2 * p1.x - p2.x, z: 2 * p1.z - p2.z };
+    const p3: Vec2 =
+      i + 2 < pts.length
+        ? pts[i + 2]
+        : { x: 2 * p2.x - p1.x, z: 2 * p2.z - p1.z };
+    return [p0, p1, p2, p3];
+  }
+
+  /** Local parameter t within segment `i` for arc-length `s`. */
+  private localT(s: number, i: number): number {
     const a = this.points[i];
     const b = this.points[i + 1];
     const segLen = b.dist - a.dist;
-    const t = segLen > 0 ? (target - a.dist) / segLen : 0;
-    return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
+    return segLen > 0 ? (clamp(s, 0, this.length) - a.dist) / segLen : 0;
+  }
+
+  /** World position at arc-length `s`. */
+  positionAt(s: number): Vec2 {
+    const i = this.segmentIndex(s);
+    const [p0, p1, p2, p3] = this.controls(i);
+    const t = this.localT(s, i);
+    const t2 = t * t;
+    const t3 = t2 * t;
+    return {
+      x:
+        0.5 *
+        (2 * p1.x +
+          (p2.x - p0.x) * t +
+          (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+          (3 * p1.x - p0.x - 3 * p2.x + p3.x) * t3),
+      z:
+        0.5 *
+        (2 * p1.z +
+          (p2.z - p0.z) * t +
+          (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 +
+          (3 * p1.z - p0.z - 3 * p2.z + p3.z) * t3),
+    };
   }
 
   /** Unit tangent (direction of travel) at arc-length `s`. */
   tangentAt(s: number): Vec2 {
     const i = this.segmentIndex(s);
-    const a = this.points[i];
-    const b = this.points[i + 1];
-    const dx = b.x - a.x;
-    const dz = b.z - a.z;
+    const [p0, p1, p2, p3] = this.controls(i);
+    const t = this.localT(s, i);
+    const t2 = t * t;
+    const dx =
+      0.5 *
+      (p2.x -
+        p0.x +
+        2 * (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t +
+        3 * (3 * p1.x - p0.x - 3 * p2.x + p3.x) * t2);
+    const dz =
+      0.5 *
+      (p2.z -
+        p0.z +
+        2 * (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t +
+        3 * (3 * p1.z - p0.z - 3 * p2.z + p3.z) * t2);
     const len = Math.hypot(dx, dz) || 1;
     return { x: dx / len, z: dz / len };
   }
@@ -61,5 +116,20 @@ export class TrackPath {
   headingAt(s: number): number {
     const t = this.tangentAt(s);
     return Math.atan2(t.x, t.z);
+  }
+
+  /**
+   * Densified points along the smooth curve (spacing in meters), for building
+   * visual geometry that must agree with where vehicles actually ride.
+   */
+  samplePoints(spacing: number): TrackPoint[] {
+    const out: TrackPoint[] = [];
+    for (let s = 0; s < this.length; s += spacing) {
+      const p = this.positionAt(s);
+      out.push({ x: p.x, z: p.z, dist: s });
+    }
+    const end = this.positionAt(this.length);
+    out.push({ x: end.x, z: end.z, dist: this.length });
+    return out;
   }
 }

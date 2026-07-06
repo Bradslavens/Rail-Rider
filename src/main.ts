@@ -54,6 +54,7 @@ let trackIndex = 0;
 let path = new TrackPath(data.tracks[0].points);
 let limits = new SpeedLimitProfile(data.tracks[0].points, DEFAULT_SPEED_LIMIT);
 let state: TrolleyState = { s: 0, v: 0 };
+let prevS = 0; // sim position before the last fixed step, for render interpolation
 let stop: StopState = INITIAL_STOP;
 let reverse = false;
 let scaleIndex = 0;
@@ -68,6 +69,7 @@ function selectTrack(i: number): void {
   limits = new SpeedLimitProfile(t.points, DEFAULT_SPEED_LIMIT);
   // Spawn far enough up-track that the whole consist sits on the rails.
   state = { s: TRAIN_SPAN, v: 0 };
+  prevS = state.s;
   stop = INITIAL_STOP;
   reverse = false;
   trolley.setReverse(false);
@@ -82,7 +84,9 @@ function selectTrack(i: number): void {
       if (m.geometry) m.geometry.dispose();
     });
   }
-  track3d = buildTrack3D(t.points);
+  // Build the rails from the same smooth curve the train rides, so the
+  // wheels and the railheads always agree through corners.
+  track3d = buildTrack3D(path.samplePoints(2.5));
   scene.add(track3d);
 
   renderPicker();
@@ -245,6 +249,7 @@ function frame(): void {
     // Hold the trolley while the doors are open (dwelling at a platform).
     const throttle = stop.doorsOpen ? 0 : input.throttle;
     const brake = stop.doorsOpen ? 1 : input.brake;
+    prevS = state.s;
     state = stepTrolley(
       state,
       DEFAULT_PARAMS,
@@ -258,11 +263,15 @@ function frame(): void {
     if (state.s < TRAIN_SPAN) state = { s: TRAIN_SPAN, v: 0 };
   }
 
-  const pos = path.positionAt(state.s);
-  const heading = path.tangentAt(state.s);
-  trolley.pose(path, state.s);
+  // Render between the last two fixed steps (alpha = leftover sim time), so
+  // motion stays smooth even when frames land 0 or 2 physics steps apart.
+  const alpha = Math.min(accumulator / FIXED_DT, 1);
+  const sRender = prevS + (state.s - prevS) * alpha;
+  const pos = path.positionAt(sRender);
+  const heading = path.tangentAt(sRender);
+  trolley.pose(path, sRender);
 
-  director.follow(pos, heading);
+  director.follow(pos, heading, realDt);
   focus.set(pos.x, 0, pos.z);
   environment.update(focus);
   crossings.update(state.s, realDt, performance.now());
