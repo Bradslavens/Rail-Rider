@@ -1,0 +1,4 @@
+{
+  "note": "Hand-tuned station positions (distAlong metres along the GTFS shape), layered over public/data/tracks.json at load. Edit with the in-app admin editor (press E, Stations tab), which writes back via the dev server.",
+  "edits": []
+}

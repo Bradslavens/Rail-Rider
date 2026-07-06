@@ -89,6 +89,40 @@ export interface PlacedSignal extends Signal {
   headingRad: number;
 }
 
+// --- Admin editor overrides -----------------------------------------------
+// Hand-tuned corrections layered over pipeline output at load time, so the
+// generated files (tracks.json / landmarks.json) stay untouched.
+
+/** Moves one GTFS station along its shape (new arc-length in meters). */
+export interface StationEdit {
+  shapeId: string;
+  stationId: string;
+  distAlong: number;
+}
+
+export interface StationEditSet {
+  note?: string;
+  edits: StationEdit[];
+}
+
+/**
+ * Moves one OSM level crossing to a new world position. The original crossing
+ * is identified by its index in landmarks.json plus its original coordinates
+ * (so a regenerated file with shuffled order still matches by position).
+ */
+export interface CrossingEdit {
+  index: number;
+  origX: number;
+  origZ: number;
+  x: number;
+  z: number;
+}
+
+export interface CrossingEditSet {
+  note?: string;
+  edits: CrossingEdit[];
+}
+
 // --- Landmarks (OSM, item 3) ---------------------------------------------
 
 /** [x, z] in world meters. */

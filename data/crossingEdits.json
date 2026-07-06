@@ -1,0 +1,4 @@
+{
+  "note": "Hand-tuned level-crossing positions (world metres), layered over public/data/landmarks.json at load. Crossings are matched by original index or rounded original coordinates. Edit with the in-app admin editor (press E, Crossings tab), which writes back via the dev server.",
+  "edits": []
+}

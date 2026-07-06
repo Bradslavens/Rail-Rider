@@ -21,9 +21,15 @@ for (const f of FILES) {
   copyFileSync(src, resolve(DEST, f));
 }
 
-// Optional files: hand-authored signals (data/) and OSM landmarks (pipeline/out).
+// Optional files: hand-authored signals + admin-editor overrides (data/) and
+// OSM landmarks (pipeline/out).
 let extra = 0;
-for (const src of [resolve(DATA, "signals.json"), resolve(OUT, "landmarks.json")]) {
+for (const src of [
+  resolve(DATA, "signals.json"),
+  resolve(DATA, "stationEdits.json"),
+  resolve(DATA, "crossingEdits.json"),
+  resolve(OUT, "landmarks.json"),
+]) {
   if (existsSync(src)) {
     copyFileSync(src, resolve(DEST, src.split("/").pop()!));
     extra++;
