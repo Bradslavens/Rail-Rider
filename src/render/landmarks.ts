@@ -55,23 +55,59 @@ function roadGeometry(r: Road, y: number): THREE.BufferGeometry | null {
   return geo;
 }
 
+/**
+ * Street rendering tiers: majors sit a touch higher than minors so crossing
+ * roads never z-fight, and each tier gets its own tint so the hierarchy reads
+ * at a glance. `stripe` adds a pale center line on the big arterials.
+ */
+const ROAD_TIERS: Array<{
+  match: (cls: string) => boolean;
+  y: number;
+  color: number;
+  stripe: boolean;
+}> = [
+  { match: (c) => c === "motorway" || c === "trunk", y: 0.21, color: 0x8e9094, stripe: true },
+  { match: (c) => c === "primary" || c === "secondary", y: 0.18, color: 0x97999c, stripe: true },
+  { match: (c) => c === "tertiary", y: 0.15, color: 0x9a9a9a, stripe: false },
+  { match: () => true, y: 0.12, color: 0x8a8a88, stripe: false }, // residential & rest
+];
+
 export function buildLandmarks(data: LandmarksData): THREE.Group {
   const group = new THREE.Group();
 
-  // Roads first (flat, just above ground to avoid z-fighting with the grid).
-  const roadGeos = data.roads.map((r) => roadGeometry(r, 0.15)).filter((g): g is THREE.BufferGeometry => !!g);
-  if (roadGeos.length) {
-    const merged = mergeGeometries(roadGeos, false);
-    const asphalt = loadTextureSet("asphalt");
+  // Roads first (flat, just above ground to avoid z-fighting with the grid),
+  // one merged mesh per tier.
+  const asphalt = loadTextureSet("asphalt");
+  const stripeGeos: THREE.BufferGeometry[] = [];
+  const buckets: Road[][] = ROAD_TIERS.map(() => []);
+  for (const r of data.roads) {
+    const cls = r.c ?? "tertiary";
+    buckets[ROAD_TIERS.findIndex((t) => t.match(cls))].push(r);
+  }
+  for (const [ti, tier] of ROAD_TIERS.entries()) {
+    const roads = buckets[ti];
+    const geos = roads.map((r) => roadGeometry(r, tier.y)).filter((g): g is THREE.BufferGeometry => !!g);
+    if (!geos.length) continue;
     const mat = new THREE.MeshStandardMaterial({
       map: asphalt.map,
       normalMap: asphalt.normalMap,
       roughnessMap: asphalt.roughnessMap,
-      color: 0x9a9a9a,
+      color: tier.color,
     });
-    const mesh = new THREE.Mesh(merged, mat);
+    const mesh = new THREE.Mesh(mergeGeometries(geos, false), mat);
     mesh.receiveShadow = true;
     group.add(mesh);
+
+    if (tier.stripe) {
+      for (const r of roads) {
+        const g = roadGeometry({ ...r, w: 0.35 }, tier.y + 0.015);
+        if (g) stripeGeos.push(g);
+      }
+    }
+  }
+  if (stripeGeos.length) {
+    const stripeMat = new THREE.MeshStandardMaterial({ color: 0xd8d2b8, roughness: 0.8 });
+    group.add(new THREE.Mesh(mergeGeometries(stripeGeos, false), stripeMat));
   }
 
   // Buildings extruded to height.

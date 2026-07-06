@@ -106,6 +106,10 @@ export interface Road {
   w: number;
   /** Centreline polyline, world meters. */
   p: Pt2[];
+  /** OSM highway class (e.g. "primary", "residential"). */
+  c?: string;
+  /** Street name, when OSM has one. */
+  n?: string;
 }
 
 export interface LandmarkPoint {

@@ -69,7 +69,60 @@ function corridorPoints(tracks: Track[], origin: LatLon): LatLon[] {
 }
 
 // --- Overpass fetch (cached) ---------------------------------------------
-async function overpass(name: string, statement: string): Promise<OsmElement[]> {
+const CHUNK_POINTS = 220; // probe points per Overpass request — the full
+// network in one query reliably 504s on the public servers.
+
+/**
+ * Fetch one probe range, splitting adaptively: if a range keeps timing out
+ * (dense areas like downtown make the around-union too expensive to evaluate
+ * server-side), halve it and fetch the halves. Cache keys are probe index
+ * ranges, so resumed runs and differently split runs share the cache.
+ */
+async function fetchSlice(
+  name: string,
+  probes: LatLon[],
+  lo: number,
+  hi: number,
+  build: (pts: string) => string,
+): Promise<OsmElement[]> {
+  const pts = probes
+    .slice(lo, hi)
+    .map((p) => `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`)
+    .join(",");
+  const canSplit = hi - lo > 40;
+  try {
+    // Fail fast on big slices (we can split); persist on the smallest ones.
+    return await overpass(`${name}-${lo}-${hi}`, build(pts), canSplit ? 4 : 12);
+  } catch (err) {
+    if (!canSplit) throw err;
+    const mid = (lo + hi) >> 1;
+    console.log(`  ${name}: ${lo}-${hi} too heavy, splitting…`);
+    const a = await fetchSlice(name, probes, lo, mid, build);
+    const b = await fetchSlice(name, probes, mid, hi, build);
+    return [...a, ...b];
+  }
+}
+
+/**
+ * Fetch one category over the whole corridor in probe chunks, merged and
+ * deduped by element id (ways near a chunk boundary come back from both sides).
+ */
+async function overpassChunked(
+  name: string,
+  probes: LatLon[],
+  build: (pts: string) => string,
+): Promise<OsmElement[]> {
+  const byId = new Map<string, OsmElement>();
+  for (let lo = 0; lo < probes.length; lo += CHUNK_POINTS) {
+    const hi = Math.min(lo + CHUNK_POINTS, probes.length);
+    const els = await fetchSlice(name, probes, lo, hi, build);
+    for (const e of els) byId.set(`${e.type}/${e.id}`, e);
+    await sleep(2000); // be polite between chunk requests
+  }
+  return [...byId.values()];
+}
+
+async function overpass(name: string, statement: string, maxAttempts = 12): Promise<OsmElement[]> {
   const cache = resolve(RAW, `osm-${LINE_FILTER || "all"}-${name}.json`);
   if (!FORCE && existsSync(cache)) {
     console.log(`  ${name}: cached`);
@@ -81,7 +134,7 @@ async function overpass(name: string, statement: string): Promise<OsmElement[]> 
   // The public Overpass servers are shared and frequently return 429/504; retry
   // with backoff, rotating endpoints, before giving up.
   let lastErr = "";
-  for (let attempt = 0; attempt < 6; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const endpoint = OVERPASS_ENDPOINTS[attempt % OVERPASS_ENDPOINTS.length];
     try {
       const res = await fetch(endpoint, {
@@ -91,7 +144,7 @@ async function overpass(name: string, statement: string): Promise<OsmElement[]> 
           "user-agent": "rail-rider/0.1 (MTS trolley training sim; github.com/Bradslavens/Rail-Rider)",
         },
         body: "data=" + encodeURIComponent(query),
-        signal: AbortSignal.timeout(180000),
+        signal: AbortSignal.timeout(240000), // match the server-side [timeout:240]
       });
       if (res.ok) {
         const text = await res.text();
@@ -103,7 +156,7 @@ async function overpass(name: string, statement: string): Promise<OsmElement[]> 
     } catch (err) {
       lastErr = String(err);
     }
-    const wait = 3000 * (attempt + 1);
+    const wait = Math.min(3000 * (attempt + 1), 30000);
     console.log(`    attempt ${attempt + 1} failed (${lastErr}); retrying in ${wait / 1000}s…`);
     await sleep(wait);
   }
@@ -156,18 +209,32 @@ async function main(): Promise<void> {
   }
 
   const probes = corridorPoints(tracks, meta.origin);
-  const pts = probes.map((p) => `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`).join(",");
   console.log(`Corridor: ${probes.length} probe points`);
 
-  const buildingEls = await overpass("buildings", `way(around:110,${pts})[building]`);
-  const roadEls = await overpass(
-    "roads",
-    `way(around:100,${pts})["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|secondary|tertiary)$"]`,
+  const buildingEls = await overpassChunked("buildings", probes, (pts) => `way(around:110,${pts})[building]`);
+  // Streets as a driving reference: majors across a wide corridor, minor
+  // residential streets in a tighter band around the track.
+  const roadEls = await overpassChunked(
+    "roads-major",
+    probes,
+    (pts) =>
+      `way(around:300,${pts})["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link)$"]`,
   );
-  const crossingEls = await overpass("crossings", `node(around:60,${pts})[railway=level_crossing]`);
-  const stationEls = await overpass(
+  const minorRoadEls = await overpassChunked(
+    "roads-minor",
+    probes,
+    (pts) => `way(around:150,${pts})["highway"~"^(residential|unclassified|living_street)$"]`,
+  );
+  const crossingEls = await overpassChunked(
+    "crossings",
+    probes,
+    (pts) => `node(around:60,${pts})[railway=level_crossing]`,
+  );
+  const stationEls = await overpassChunked(
     "stations",
-    `node(around:150,${pts})[railway~"^(station|tram_stop|halt)$"];way(around:150,${pts})["public_transport"="platform"];way(around:150,${pts})[railway=platform]`,
+    probes,
+    (pts) =>
+      `node(around:150,${pts})[railway~"^(station|tram_stop|halt)$"];way(around:150,${pts})["public_transport"="platform"];way(around:150,${pts})[railway=platform]`,
   );
 
   const buildings = buildingEls
@@ -177,12 +244,19 @@ async function main(): Promise<void> {
 
   const ROAD_WIDTH: Record<string, number> = {
     motorway: 18, trunk: 16, primary: 12, secondary: 10, tertiary: 8,
+    residential: 7, unclassified: 7, living_street: 6,
   };
-  const roads = roadEls
+  const roads = [...roadEls, ...minorRoadEls]
     .filter((e) => e.type === "way" && e.geometry && e.geometry.length >= 2)
     .map((e) => {
       const cls = (e.tags?.highway ?? "tertiary").replace(/_link$/, "");
-      return { w: ROAD_WIDTH[cls] ?? 8, p: projectRing(e.geometry!, meta.origin) };
+      const name = e.tags?.name;
+      return {
+        w: ROAD_WIDTH[cls] ?? 8,
+        c: cls,
+        ...(name ? { n: name } : {}),
+        p: projectRing(e.geometry!, meta.origin),
+      };
     })
     .filter((r) => r.p.length >= 2);
 
@@ -203,7 +277,7 @@ async function main(): Promise<void> {
     source: "OpenStreetMap via Overpass API",
     license: "ODbL — © OpenStreetMap contributors",
     generatedAt: new Date().toISOString().slice(0, 10),
-    corridorRadiusM: { buildings: 110, roads: 100, crossings: 60, stations: 150 },
+    corridorRadiusM: { buildings: 110, roadsMajor: 300, roadsMinor: 150, crossings: 60, stations: 150 },
     counts: {
       buildings: buildings.length,
       roads: roads.length,
