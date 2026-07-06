@@ -67,9 +67,10 @@ export class CameraDirector {
       this.perspective.position.set(pos.x + fx * 13.5, 3.0, pos.z + fz * 13.5);
       this.target.set(pos.x + fx * 120, 2.6, pos.z + fz * 120);
     } else {
-      // Well back and above so the whole car sits in frame.
-      this.perspective.position.set(pos.x - fx * 48, 19, pos.z - fz * 48);
-      this.target.set(pos.x + fx * 20, 3, pos.z + fz * 20);
+      // Well back and above so the whole 3-car consist sits in frame
+      // (the train extends ~60 m behind the lead car's center).
+      this.perspective.position.set(pos.x - fx * 88, 15, pos.z - fz * 88);
+      this.target.set(pos.x + fx * 8, 4, pos.z + fz * 8);
     }
     this.perspective.lookAt(this.target);
   }

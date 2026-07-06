@@ -18,7 +18,7 @@ import {
   DEFAULT_STOP_PARAMS,
   type StopState,
 } from "./sim/stops.ts";
-import { buildTrolley } from "./render/trolley.ts";
+import { buildTrolley, TRAIN_SPAN } from "./render/trolley.ts";
 import { CameraDirector } from "./camera/driveCamera.ts";
 import { InputManager } from "./input/input.ts";
 
@@ -43,7 +43,7 @@ scene.add(crossings.group);
 // --- Trolley + driving state ---------------------------------------------
 const director = new CameraDirector(data.meta);
 const input = new InputManager();
-const trolley = buildTrolley(data.tracks[0].colorHex);
+const trolley = await buildTrolley(data.tracks[0].colorHex);
 trolley.group.traverse((o) => {
   if ((o as THREE.Mesh).isMesh) o.castShadow = true;
 });
@@ -66,9 +66,11 @@ function selectTrack(i: number): void {
   const t = data.tracks[trackIndex];
   path = new TrackPath(t.points);
   limits = new SpeedLimitProfile(t.points, DEFAULT_SPEED_LIMIT);
-  state = { s: 0, v: 0 };
+  // Spawn far enough up-track that the whole consist sits on the rails.
+  state = { s: TRAIN_SPAN, v: 0 };
   stop = INITIAL_STOP;
   reverse = false;
+  trolley.setReverse(false);
   trolley.setColor(t.colorHex);
   crossings.setActiveTrack(t.points, path);
 
@@ -88,6 +90,7 @@ function selectTrack(i: number): void {
 
 input.onReverse = () => {
   reverse = !reverse;
+  trolley.setReverse(reverse);
 };
 input.onCameraToggle = () => director.cycleDriveView();
 input.onMapToggle = () => director.toggleMap();
@@ -251,12 +254,13 @@ function frame(): void {
       limit,
     );
     stop = updateStop(stop, state, stations, DEFAULT_STOP_PARAMS, FIXED_DT);
+    // Don't reverse the tail car off the start of the line.
+    if (state.s < TRAIN_SPAN) state = { s: TRAIN_SPAN, v: 0 };
   }
 
   const pos = path.positionAt(state.s);
   const heading = path.tangentAt(state.s);
-  trolley.group.position.set(pos.x, 0, pos.z);
-  trolley.group.rotation.y = Math.atan2(heading.x, heading.z);
+  trolley.pose(path, state.s);
 
   director.follow(pos, heading);
   focus.set(pos.x, 0, pos.z);
