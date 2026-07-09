@@ -43,7 +43,9 @@ function roadGeometry(r: Road, y: number): THREE.BufferGeometry | null {
     const v0 = dist / TILE;
     const v1 = (dist + len) / TILE;
     uvs.push(0, v0, 1, v0, 0, v1, 1, v1);
-    idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
+    // Wind triangles so the ribbon's normal points up (+Y): the other winding
+    // faces the road downward, and FrontSide culling then hides it entirely.
+    idx.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
     base += 4;
     dist += len;
   }
