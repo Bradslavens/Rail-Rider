@@ -33,6 +33,8 @@ export class CrossingsController {
   private readonly nodes: CrossingNode[] = [];
   private readonly armMat = new THREE.MeshStandardMaterial({ color: 0xd33a2c, roughness: 0.6 });
   private readonly postMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.7 });
+  // Worn white paint for the on-road stop bars and zebra stripes.
+  private readonly markMat = new THREE.MeshStandardMaterial({ color: 0xeae7d8, roughness: 0.9 });
 
   constructor(
     crossings: LandmarkPoint[],
@@ -45,6 +47,8 @@ export class CrossingsController {
     const group = new THREE.Group();
     group.position.set(c.x, 0, c.z);
     group.visible = false;
+
+    this.addRoadMarkings(group);
 
     const postGeo = new THREE.BoxGeometry(0.3, 3, 0.3);
     const armGeo = new THREE.BoxGeometry(ARM_LEN, 0.3, 0.3);
@@ -79,6 +83,32 @@ export class CrossingsController {
 
     this.group.add(group);
     return { group, gates, lights, onLine: false, distM: 0, closure: 0 };
+  }
+
+  /**
+   * Paint on-road markings at the crossing: a stop bar plus a short zebra band
+   * on each approach. In group-local space (rotated so +X runs along the track
+   * / across the carriageway and +Z runs along the road), every marking is a
+   * flat bar long on X, offset down the road on ±Z, and lifted just above the
+   * road ribbons so it never z-fights the asphalt.
+   */
+  private addRoadMarkings(group: THREE.Group): void {
+    const y = 0.24; // just above the highest road tier (0.21)
+    const roadW = 8; // assumed carriageway width (m)
+    const stopGeo = new THREE.BoxGeometry(roadW - 0.5, 0.05, 0.7);
+    const stripeGeo = new THREE.BoxGeometry(roadW - 1.5, 0.05, 0.45);
+    for (const approach of [1, -1]) {
+      const stop = new THREE.Mesh(stopGeo, this.markMat);
+      stop.position.set(0, y, approach * 6.8);
+      stop.receiveShadow = true;
+      group.add(stop);
+      for (let j = 0; j < 4; j++) {
+        const stripe = new THREE.Mesh(stripeGeo, this.markMat);
+        stripe.position.set(0, y, approach * (3.5 + j * 0.8));
+        stripe.receiveShadow = true;
+        group.add(stripe);
+      }
+    }
   }
 
   /** Re-anchor crossings to the active line and orient their gates across it. */
