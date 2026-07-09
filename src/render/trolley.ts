@@ -35,7 +35,7 @@ export interface TrolleyMesh {
 const C_UNDERFRAME = new THREE.Color(0x23262a);
 const C_BODY_RED = new THREE.Color(0xc0121d);
 const C_WINDOW = new THREE.Color(0x0e1216);
-const C_ROOF = new THREE.Color(0x9aa1a8);
+const C_ROOF = new THREE.Color(0x141618);
 
 /**
  * Paint the raw (untextured) Meshy mesh with vertex colors approximating the

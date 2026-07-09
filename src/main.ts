@@ -14,6 +14,7 @@ import { buildTrack3D } from "./render/track3d.ts";
 import { setupPostFX } from "./render/postfx.ts";
 import { AdminEditor } from "./edit/adminEditor.ts";
 import { TrackPath } from "./sim/trackPath.ts";
+import { smoothTrackPoints } from "./sim/smoothPath.ts";
 import type { TrackPoint } from "./core/types.ts";
 import { stepTrolley, DEFAULT_PARAMS, type TrolleyState } from "./sim/trolley.ts";
 import { planSubsteps, FIXED_DT, TIME_SCALES } from "./sim/clock.ts";
@@ -38,6 +39,10 @@ const environment = setupEnvironment(scene, renderer);
 
 // --- Load network ---------------------------------------------------------
 const data = await loadNetwork();
+// Smooth the GTFS shape jitter out of every line's waypoints up front, so the
+// train ride, the rendered rails, and the overhead map all share one clean
+// path. Consumers below read straight from `t.points`.
+for (const t of data.tracks) t.points = smoothTrackPoints(t.points);
 scene.add(buildNetwork(data).group);
 
 // OSM landmarks (buildings/roads) — tolerant of a missing file. Crossing
@@ -302,6 +307,12 @@ function frame(): void {
   requestAnimationFrame(frame);
 }
 
-selectTrack(0);
+// Start on the Copper line (route 535) — the focus line for current tuning.
+// Falls back to the first track if Copper isn't present in the data.
+const startIndex = Math.max(
+  0,
+  data.tracks.findIndex((t) => t.shortName === "Copper"),
+);
+selectTrack(startIndex);
 resize();
 frame();
