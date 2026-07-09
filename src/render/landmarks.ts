@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import type { LandmarksData, Building, Road } from "../core/types.ts";
+import type { LandmarksData, Building, Road, Green, Pt2 } from "../core/types.ts";
 import { loadTextureSet } from "./textures.ts";
 
 // Render OSM landmarks: building footprints extruded to their height and roads
@@ -130,8 +130,156 @@ const ROAD_TIERS: Array<{
   { match: () => true, y: 0.12, color: 0xbdbdba, stripe: false }, // residential & rest
 ];
 
+// --- Greenery ---------------------------------------------------------------
+
+/** Deterministic pseudo-random in [0,1) from an integer seed (mulberry32). */
+function rand(seed: number): number {
+  let t = (seed + 0x6d2b79f5) | 0;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+function pointInPolygon(x: number, z: number, ring: Pt2[]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, zi] = ring[i];
+    const [xj, zj] = ring[j];
+    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function polyArea(ring: Pt2[]): number {
+  let a = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+  }
+  return Math.abs(a) / 2;
+}
+
+// Ground tint per green category (multiplies the grass texture).
+const GREEN_TINT: Record<Green["k"], number> = {
+  wood: 0x4c6136,
+  park: 0x6f8a49,
+  grass: 0x788f4f,
+};
+// Approx spacing (m) between scattered trees; grass areas get none.
+const SCATTER_SPACING: Record<Green["k"], number> = { wood: 7, park: 15, grass: 0 };
+const MAX_TREES = 60000;
+
+/** Flat tinted ground patches for green areas, one merged mesh. */
+function buildGreens(greens: Green[]): THREE.Mesh | null {
+  const geos: THREE.BufferGeometry[] = [];
+  for (const g of greens) {
+    if (g.p.length < 3) continue;
+    const shape = new THREE.Shape();
+    shape.moveTo(g.p[0][0], -g.p[0][1]);
+    for (let i = 1; i < g.p.length; i++) shape.lineTo(g.p[i][0], -g.p[i][1]);
+    shape.closePath();
+    const geo = new THREE.ShapeGeometry(shape);
+    geo.rotateX(-Math.PI / 2); // shape XY -> world XZ
+    geo.translate(0, 0.05, 0); // just above grass, below roads (0.12)
+    const c = new THREE.Color(GREEN_TINT[g.k]);
+    const pos = geo.getAttribute("position");
+    const col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      col[i * 3] = c.r;
+      col[i * 3 + 1] = c.g;
+      col[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    geos.push(geo);
+  }
+  if (!geos.length) return null;
+  // No map: the shared grass texture's repeat is tuned for the giant ground
+  // plane and would moiré on small patches, so greens are flat vertex-colored.
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
+  const mesh = new THREE.Mesh(mergeGeometries(geos, false), mat);
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** Collect tree positions: mapped trees plus scatter inside wooded/park greens. */
+function treePositions(data: LandmarksData): Pt2[] {
+  const out: Pt2[] = [];
+  for (const t of data.trees ?? []) out.push(t);
+  for (const g of data.greens ?? []) {
+    const spacing = SCATTER_SPACING[g.k];
+    if (!spacing || g.p.length < 3) continue;
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const [x, z] of g.p) {
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+    }
+    const target = Math.min(400, Math.floor(polyArea(g.p) / (spacing * spacing)));
+    let placed = 0;
+    for (let a = 0; a < target * 4 && placed < target; a++) {
+      const s = (g.p[0][0] * 131 + g.p[0][1] * 977 + a) | 0;
+      const x = minX + rand(s) * (maxX - minX);
+      const z = minZ + rand(s * 2 + 1) * (maxZ - minZ);
+      if (pointInPolygon(x, z, g.p)) {
+        out.push([Math.round(x * 10) / 10, Math.round(z * 10) / 10]);
+        placed++;
+      }
+    }
+  }
+  return out.length > MAX_TREES ? out.filter((_, i) => i % Math.ceil(out.length / MAX_TREES) === 0) : out;
+}
+
+// Low-poly foliage tones (flat-shaded), varied per instance.
+const LEAF_COLORS = [0x4a6b32, 0x5c7a3a, 0x3f5d2c, 0x6b8446, 0x557539].map((h) => new THREE.Color(h));
+
+/** Instanced low-poly trees (5-sided trunk + icosahedron canopy) at each point. */
+function buildTrees(positions: Pt2[]): THREE.Group {
+  const group = new THREE.Group();
+  const n = positions.length;
+  if (!n) return group;
+
+  const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 2.4, 5);
+  trunkGeo.translate(0, 1.2, 0);
+  const leafGeo = new THREE.IcosahedronGeometry(1.5, 0);
+  leafGeo.translate(0, 3.3, 0);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5b4634, roughness: 0.95, flatShading: true });
+  const leafMat = new THREE.MeshStandardMaterial({ roughness: 0.85, flatShading: true });
+
+  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, n);
+  const leaves = new THREE.InstancedMesh(leafGeo, leafMat, n);
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const scl = new THREE.Vector3();
+  const pos = new THREE.Vector3();
+  const eul = new THREE.Euler();
+
+  for (let i = 0; i < n; i++) {
+    const [x, z] = positions[i];
+    const seed = (x * 92821 + z * 68917) | 0;
+    const s = 0.75 + rand(seed) * 0.8;
+    eul.set(0, rand(seed * 3 + 7) * Math.PI * 2, 0);
+    q.setFromEuler(eul);
+    scl.set(s, s * (0.85 + rand(seed * 5 + 3) * 0.5), s);
+    pos.set(x, 0, z);
+    m.compose(pos, q, scl);
+    trunks.setMatrixAt(i, m);
+    leaves.setMatrixAt(i, m);
+    leaves.setColorAt(i, LEAF_COLORS[Math.floor(rand(seed * 7 + 1) * LEAF_COLORS.length)]);
+  }
+  trunks.castShadow = true;
+  leaves.castShadow = true;
+  trunks.instanceMatrix.needsUpdate = true;
+  leaves.instanceMatrix.needsUpdate = true;
+  if (leaves.instanceColor) leaves.instanceColor.needsUpdate = true;
+  group.add(trunks, leaves);
+  return group;
+}
+
 export function buildLandmarks(data: LandmarksData): THREE.Group {
   const group = new THREE.Group();
+
+  // Green areas under everything else (tinted ground), then their trees.
+  const greensMesh = buildGreens(data.greens ?? []);
+  if (greensMesh) group.add(greensMesh);
+  group.add(buildTrees(treePositions(data)));
 
   // Roads first (flat, just above ground to avoid z-fighting with the grid),
   // one merged mesh per tier.

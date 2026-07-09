@@ -91,8 +91,15 @@ async function fetchSlice(
     .join(",");
   const canSplit = hi - lo > 40;
   try {
-    // Fail fast on big slices (we can split); persist on the smallest ones.
-    return await overpass(`${name}-${lo}-${hi}`, build(pts), canSplit ? 4 : 12);
+    // Fail fast on big slices (we can split): few attempts + a short client
+    // timeout so a heavy range drops to its cheaper halves in seconds rather
+    // than waiting out the full server timeout. Persist on the smallest ones.
+    return await overpass(
+      `${name}-${lo}-${hi}`,
+      build(pts),
+      canSplit ? 2 : 12,
+      canSplit ? 25000 : 240000,
+    );
   } catch (err) {
     if (!canSplit) throw err;
     const mid = (lo + hi) >> 1;
@@ -122,7 +129,12 @@ async function overpassChunked(
   return [...byId.values()];
 }
 
-async function overpass(name: string, statement: string, maxAttempts = 12): Promise<OsmElement[]> {
+async function overpass(
+  name: string,
+  statement: string,
+  maxAttempts = 12,
+  clientTimeoutMs = 240000,
+): Promise<OsmElement[]> {
   const cache = resolve(RAW, `osm-${LINE_FILTER || "all"}-${name}.json`);
   if (!FORCE && existsSync(cache)) {
     console.log(`  ${name}: cached`);
@@ -144,7 +156,7 @@ async function overpass(name: string, statement: string, maxAttempts = 12): Prom
           "user-agent": "rail-rider/0.1 (MTS trolley training sim; github.com/Bradslavens/Rail-Rider)",
         },
         body: "data=" + encodeURIComponent(query),
-        signal: AbortSignal.timeout(240000), // match the server-side [timeout:240]
+        signal: AbortSignal.timeout(clientTimeoutMs),
       });
       if (res.ok) {
         const text = await res.text();
@@ -197,6 +209,33 @@ function centroidLocal(geom: { lat: number; lon: number }[], origin: LatLon): Ve
   return { x: x / geom.length, z: z / geom.length };
 }
 
+/** Coarse category for a green area, driving how densely we scatter trees in it. */
+function greenKind(tags: Record<string, string> = {}): "wood" | "park" | "grass" {
+  const nat = tags.natural ?? "";
+  const use = tags.landuse ?? "";
+  if (nat === "wood" || nat === "scrub" || use === "forest") return "wood";
+  if (tags.leisure === "park" || use === "recreation_ground" || use === "cemetery" || use === "village_green")
+    return "park";
+  return "grass";
+}
+
+/**
+ * Thin points to at most one per ~`cellM` grid cell. Mapped street trees can be
+ * spaced under a metre apart in OSM; this caps instance count and file size
+ * without visibly changing a canopy.
+ */
+function thinPoints(pts: { x: number; z: number }[], cellM: number): { x: number; z: number }[] {
+  const seen = new Set<string>();
+  const out: { x: number; z: number }[] = [];
+  for (const p of pts) {
+    const key = `${Math.round(p.x / cellM)}_${Math.round(p.z / cellM)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out;
+}
+
 async function main(): Promise<void> {
   const meta = JSON.parse(readFileSync(resolve(OUT, "meta.json"), "utf8")) as Meta;
   let tracks = JSON.parse(readFileSync(resolve(OUT, "tracks.json"), "utf8")) as Track[];
@@ -236,6 +275,19 @@ async function main(): Promise<void> {
     (pts) =>
       `node(around:150,${pts})[railway~"^(station|tram_stop|halt)$"];way(around:150,${pts})["public_transport"="platform"];way(around:150,${pts})[railway=platform]`,
   );
+  // Individual mapped trees (nodes) and tree rows (ways) in a tight band.
+  const treeEls = await overpassChunked(
+    "trees",
+    probes,
+    (pts) => `node(around:80,${pts})[natural=tree];way(around:80,${pts})[natural=tree_row]`,
+  );
+  // Green areas (park/grass/wood) for tinted ground patches and scatter fill.
+  const greenEls = await overpassChunked(
+    "greens",
+    probes,
+    (pts) =>
+      `way(around:200,${pts})["leisure"="park"];way(around:200,${pts})["landuse"~"^(grass|meadow|recreation_ground|forest|cemetery|village_green)$"];way(around:200,${pts})["natural"~"^(wood|scrub|grassland)$"]`,
+  );
 
   const buildings = buildingEls
     .filter((e) => e.type === "way" && e.geometry && e.geometry.length >= 4)
@@ -273,21 +325,53 @@ async function main(): Promise<void> {
       return { x: r1(v.x), z: r1(v.z), name: e.tags?.name ?? "" };
     });
 
+  // Trees: each mapped tree node → a point; each tree_row way → points sampled
+  // ~10 m along its line. Thinned to one per ~6 m cell to cap instance count.
+  const treePts: { x: number; z: number }[] = [];
+  for (const e of treeEls) {
+    if (e.type === "node" && e.lat !== undefined) {
+      const v = project({ lat: e.lat!, lon: e.lon! }, meta.origin);
+      treePts.push({ x: r1(v.x), z: r1(v.z) });
+    } else if (e.type === "way" && e.geometry && e.geometry.length >= 2) {
+      const ring = projectRing(e.geometry, meta.origin);
+      for (let i = 0; i < ring.length - 1; i++) {
+        const [ax, az] = ring[i];
+        const [bx, bz] = ring[i + 1];
+        const len = Math.hypot(bx - ax, bz - az);
+        const n = Math.max(1, Math.round(len / 10));
+        for (let k = 0; k < n; k++) {
+          const t = k / n;
+          treePts.push({ x: r1(ax + (bx - ax) * t), z: r1(az + (bz - az) * t) });
+        }
+      }
+    }
+  }
+  const trees = thinPoints(treePts, 6).map((p) => [p.x, p.z] as [number, number]);
+
+  const greens = greenEls
+    .filter((e) => e.type === "way" && e.geometry && e.geometry.length >= 4)
+    .map((e) => ({ k: greenKind(e.tags), p: projectRing(e.geometry!, meta.origin) }))
+    .filter((g) => g.p.length >= 3);
+
   const result = {
     source: "OpenStreetMap via Overpass API",
     license: "ODbL — © OpenStreetMap contributors",
     generatedAt: new Date().toISOString().slice(0, 10),
-    corridorRadiusM: { buildings: 110, roadsMajor: 300, roadsMinor: 150, crossings: 60, stations: 150 },
+    corridorRadiusM: { buildings: 110, roadsMajor: 300, roadsMinor: 150, crossings: 60, stations: 150, trees: 80, greens: 200 },
     counts: {
       buildings: buildings.length,
       roads: roads.length,
       crossings: crossings.length,
       stations: stations.length,
+      trees: trees.length,
+      greens: greens.length,
     },
     buildings,
     roads,
     crossings,
     stations,
+    trees,
+    greens,
   };
   const outPath = resolve(OUT, "landmarks.json");
   writeFileSync(outPath, JSON.stringify(result));

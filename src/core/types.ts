@@ -152,9 +152,21 @@ export interface LandmarkPoint {
   name?: string;
 }
 
+/** A green area (park/grass/wooded), used for ground tint and tree scatter. */
+export interface Green {
+  /** Category: how densely trees are scattered inside. */
+  k: "wood" | "park" | "grass";
+  /** Outer ring, world meters. */
+  p: Pt2[];
+}
+
 export interface LandmarksData {
   buildings: Building[];
   roads: Road[];
   crossings: LandmarkPoint[];
   stations: LandmarkPoint[];
+  /** Individual tree positions (world meters). Optional (older data lacks it). */
+  trees?: Pt2[];
+  /** Green-area polygons. Optional (older data lacks it). */
+  greens?: Green[];
 }
