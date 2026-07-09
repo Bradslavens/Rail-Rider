@@ -11,3 +11,6 @@ public/data/
 
 # Playwright MCP browser-session artifacts
 .playwright-mcp/
+
+# Development screenshots
+screenshots/
