@@ -276,45 +276,52 @@ function buildTrees(positions: Pt2[]): THREE.Group {
 // --- Street-name labels ------------------------------------------------------
 
 const labelTexCache = new Map<string, THREE.CanvasTexture>();
-const labelMatCache = new Map<string, THREE.MeshBasicMaterial>();
+const labelMatCache = new Map<string, THREE.SpriteMaterial>();
 
-/** Flat label material for a street name (texture + material shared per name). */
-function labelMaterial(name: string): THREE.MeshBasicMaterial {
+/** Billboard material for a street name (texture + material shared per name). */
+function labelMaterial(name: string): THREE.SpriteMaterial {
   const hit = labelMatCache.get(name);
   if (hit) return hit;
-  const mat = new THREE.MeshBasicMaterial({
+  const mat = new THREE.SpriteMaterial({
     map: labelTexture(name),
     transparent: true,
     depthWrite: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -4,
-    polygonOffsetUnits: -8,
+    depthTest: true, // signs are hidden behind buildings in front of them
   });
   labelMatCache.set(name, mat);
   return mat;
 }
 
-/** White, dark-outlined street name rendered to a canvas texture (cached). */
+/** Street name drawn on a dark rounded plaque so it reads against any backdrop. */
 function labelTexture(name: string): THREE.CanvasTexture {
   const hit = labelTexCache.get(name);
   if (hit) return hit;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
-  const fontPx = 64;
-  const font = `700 ${fontPx}px system-ui, Arial, sans-serif`;
+  const fontPx = 60;
+  const font = `600 ${fontPx}px system-ui, Arial, sans-serif`;
   ctx.font = font;
-  const pad = 14;
-  canvas.width = Math.ceil(ctx.measureText(name).width) + pad * 2;
-  canvas.height = fontPx + pad * 2;
+  const padX = 26;
+  const padY = 16;
+  canvas.width = Math.ceil(ctx.measureText(name).width) + padX * 2;
+  canvas.height = fontPx + padY * 2;
+
+  // Rounded translucent plaque background with a subtle border.
+  const r = canvas.height / 2;
+  ctx.beginPath();
+  ctx.roundRect(1, 1, canvas.width - 2, canvas.height - 2, r);
+  ctx.fillStyle = "rgba(24,28,34,0.78)";
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.stroke();
+
   ctx.font = font; // reset after the resize cleared it
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "rgba(18,20,18,0.9)";
-  ctx.lineWidth = 9;
-  ctx.strokeText(name, canvas.width / 2, canvas.height / 2);
-  ctx.fillStyle = "#f4f1e4";
-  ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = "#f6f4ec";
+  ctx.fillText(name, canvas.width / 2, canvas.height / 2 + 2);
+
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
@@ -325,22 +332,21 @@ function labelTexture(name: string): THREE.CanvasTexture {
   return tex;
 }
 
-/** Surface height of a road tier (labels sit just above their road). */
+/** Surface height of a road tier (labels float a fixed distance above this). */
 function roadTierY(cls: string): number {
   for (const t of ROAD_TIERS) if (t.match(cls)) return t.y;
   return 0.12;
 }
 
-// One unit quad laid flat (XZ), reused by every label and scaled per road.
-const LABEL_QUAD = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-const LABEL_HEIGHT = 3.2; // world height of the text band (m)
+const SIGN_HEIGHT = 2.6; // world height of the plaque (m)
+const SIGN_FLOAT = 6.5; // meters the sign floats above the road
 
 /**
- * A flat name label along the centreline of each named road: placed at the
- * road's midpoint, rotated to follow the road (flipped so text reads roughly
- * left-to-right), and lifted just above the road with polygonOffset so it never
- * z-fights the asphalt. Each mesh is separate so the frustum culls off-screen
- * labels; textures are shared per unique street name.
+ * A floating street-name sign hovering above each named road's midpoint. Each
+ * is a camera-facing billboard (THREE.Sprite) so it stays readable from any
+ * angle — unlike flat pavement text, which vanishes at grazing view angles.
+ * Materials/textures are shared per unique street name; the frustum culls
+ * off-screen signs and distance attenuation shrinks far ones.
  */
 function buildRoadLabels(roads: Road[]): THREE.Group {
   const group = new THREE.Group();
@@ -350,41 +356,32 @@ function buildRoadLabels(roads: Road[]): THREE.Group {
     let total = 0;
     for (let i = 1; i < r.p.length; i++)
       total += Math.hypot(r.p[i][0] - r.p[i - 1][0], r.p[i][1] - r.p[i - 1][1]);
-    if (total < 25) continue; // too short to carry a readable label
+    if (total < 25) continue; // too short to bother signing
 
-    // Segment containing the halfway point, and the exact point on it.
+    // Point at the halfway distance along the road.
     let acc = 0;
-    let si = 0;
-    let tmid = 0.5;
+    let cx = r.p[0][0];
+    let cz = r.p[0][1];
     const half = total / 2;
     for (let i = 1; i < r.p.length; i++) {
-      const seg = Math.hypot(r.p[i][0] - r.p[i - 1][0], r.p[i][1] - r.p[i - 1][1]);
+      const [ax, az] = r.p[i - 1];
+      const [bx, bz] = r.p[i];
+      const seg = Math.hypot(bx - ax, bz - az);
       if (acc + seg >= half) {
-        si = i - 1;
-        tmid = (half - acc) / (seg || 1);
+        const t = (half - acc) / (seg || 1);
+        cx = ax + (bx - ax) * t;
+        cz = az + (bz - az) * t;
         break;
       }
       acc += seg;
     }
-    let [ax, az] = r.p[si];
-    let [bx, bz] = r.p[si + 1];
-    // Flip direction so labels read roughly left-to-right, not upside down.
-    if (bx - ax < 0) {
-      [ax, bx] = [bx, ax];
-      [az, bz] = [bz, az];
-      tmid = 1 - tmid;
-    }
-    const cx = ax + (bx - ax) * tmid;
-    const cz = az + (bz - az) * tmid;
 
     const mat = labelMaterial(r.n);
     const img = mat.map!.image as HTMLCanvasElement;
-    const width = Math.min(LABEL_HEIGHT * (img.width / img.height), total * 0.9);
-    const mesh = new THREE.Mesh(LABEL_QUAD, mat);
-    mesh.scale.set(width, 1, LABEL_HEIGHT);
-    mesh.position.set(cx, roadTierY(r.c ?? "tertiary") + 0.02, cz);
-    mesh.rotation.y = Math.atan2(-(bz - az), bx - ax);
-    group.add(mesh);
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(SIGN_HEIGHT * (img.width / img.height), SIGN_HEIGHT, 1);
+    sprite.position.set(cx, roadTierY(r.c ?? "tertiary") + SIGN_FLOAT, cz);
+    group.add(sprite);
   }
   return group;
 }
