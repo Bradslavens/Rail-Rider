@@ -122,12 +122,12 @@ const ROAD_TIERS: Array<{
   stripe: boolean;
 }> = [
   // Tints run near-white: they multiply the (dark) asphalt texture, so a low
-  // gray here crushed roads to near-black. These land them at a realistic
-  // mid-gray pavement tone, majors a touch lighter than side streets.
-  { match: (c) => c === "motorway" || c === "trunk", y: 0.21, color: 0xdcdde0, stripe: true },
-  { match: (c) => c === "primary" || c === "secondary", y: 0.18, color: 0xd2d3d6, stripe: true },
-  { match: (c) => c === "tertiary", y: 0.15, color: 0xc8c8c8, stripe: false },
-  { match: () => true, y: 0.12, color: 0xbdbdba, stripe: false }, // residential & rest
+  // gray here crushed roads to near-black. Lifted so pavement reads as a light
+  // mid-gray against the brighter daytime grass, majors lighter than side streets.
+  { match: (c) => c === "motorway" || c === "trunk", y: 0.21, color: 0xf2f3f5, stripe: true },
+  { match: (c) => c === "primary" || c === "secondary", y: 0.18, color: 0xe9eaec, stripe: true },
+  { match: (c) => c === "tertiary", y: 0.15, color: 0xdedede, stripe: false },
+  { match: () => true, y: 0.12, color: 0xd2d2ce, stripe: false }, // residential & rest
 ];
 
 // --- Greenery ---------------------------------------------------------------
@@ -312,7 +312,17 @@ export function buildLandmarks(data: LandmarksData): THREE.Group {
     }
   }
   if (stripeGeos.length) {
-    const stripeMat = new THREE.MeshStandardMaterial({ color: 0xd8d2b8, roughness: 0.8 });
+    // polygonOffset pulls the stripe toward the camera in the depth buffer so it
+    // reliably wins over the road beneath it. Without this the tiny 0.015 m gap
+    // falls below depth precision at range and the stripe flickers on/off ("jumps
+    // and skips") as the camera moves.
+    const stripeMat = new THREE.MeshStandardMaterial({
+      color: 0xd8d2b8,
+      roughness: 0.8,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -4,
+    });
     group.add(new THREE.Mesh(mergeGeometries(stripeGeos, false), stripeMat));
   }
 
