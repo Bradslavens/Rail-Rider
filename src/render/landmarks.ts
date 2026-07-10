@@ -273,6 +273,122 @@ function buildTrees(positions: Pt2[]): THREE.Group {
   return group;
 }
 
+// --- Street-name labels ------------------------------------------------------
+
+const labelTexCache = new Map<string, THREE.CanvasTexture>();
+const labelMatCache = new Map<string, THREE.MeshBasicMaterial>();
+
+/** Flat label material for a street name (texture + material shared per name). */
+function labelMaterial(name: string): THREE.MeshBasicMaterial {
+  const hit = labelMatCache.get(name);
+  if (hit) return hit;
+  const mat = new THREE.MeshBasicMaterial({
+    map: labelTexture(name),
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -4,
+    polygonOffsetUnits: -8,
+  });
+  labelMatCache.set(name, mat);
+  return mat;
+}
+
+/** White, dark-outlined street name rendered to a canvas texture (cached). */
+function labelTexture(name: string): THREE.CanvasTexture {
+  const hit = labelTexCache.get(name);
+  if (hit) return hit;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+  const fontPx = 64;
+  const font = `700 ${fontPx}px system-ui, Arial, sans-serif`;
+  ctx.font = font;
+  const pad = 14;
+  canvas.width = Math.ceil(ctx.measureText(name).width) + pad * 2;
+  canvas.height = fontPx + pad * 2;
+  ctx.font = font; // reset after the resize cleared it
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(18,20,18,0.9)";
+  ctx.lineWidth = 9;
+  ctx.strokeText(name, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = "#f4f1e4";
+  ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.generateMipmaps = false; // canvas is non-power-of-two
+  tex.minFilter = THREE.LinearFilter;
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  labelTexCache.set(name, tex);
+  return tex;
+}
+
+/** Surface height of a road tier (labels sit just above their road). */
+function roadTierY(cls: string): number {
+  for (const t of ROAD_TIERS) if (t.match(cls)) return t.y;
+  return 0.12;
+}
+
+// One unit quad laid flat (XZ), reused by every label and scaled per road.
+const LABEL_QUAD = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+const LABEL_HEIGHT = 3.2; // world height of the text band (m)
+
+/**
+ * A flat name label along the centreline of each named road: placed at the
+ * road's midpoint, rotated to follow the road (flipped so text reads roughly
+ * left-to-right), and lifted just above the road with polygonOffset so it never
+ * z-fights the asphalt. Each mesh is separate so the frustum culls off-screen
+ * labels; textures are shared per unique street name.
+ */
+function buildRoadLabels(roads: Road[]): THREE.Group {
+  const group = new THREE.Group();
+  for (const r of roads) {
+    if (!r.n || r.p.length < 2) continue;
+
+    let total = 0;
+    for (let i = 1; i < r.p.length; i++)
+      total += Math.hypot(r.p[i][0] - r.p[i - 1][0], r.p[i][1] - r.p[i - 1][1]);
+    if (total < 25) continue; // too short to carry a readable label
+
+    // Segment containing the halfway point, and the exact point on it.
+    let acc = 0;
+    let si = 0;
+    let tmid = 0.5;
+    const half = total / 2;
+    for (let i = 1; i < r.p.length; i++) {
+      const seg = Math.hypot(r.p[i][0] - r.p[i - 1][0], r.p[i][1] - r.p[i - 1][1]);
+      if (acc + seg >= half) {
+        si = i - 1;
+        tmid = (half - acc) / (seg || 1);
+        break;
+      }
+      acc += seg;
+    }
+    let [ax, az] = r.p[si];
+    let [bx, bz] = r.p[si + 1];
+    // Flip direction so labels read roughly left-to-right, not upside down.
+    if (bx - ax < 0) {
+      [ax, bx] = [bx, ax];
+      [az, bz] = [bz, az];
+      tmid = 1 - tmid;
+    }
+    const cx = ax + (bx - ax) * tmid;
+    const cz = az + (bz - az) * tmid;
+
+    const mat = labelMaterial(r.n);
+    const img = mat.map!.image as HTMLCanvasElement;
+    const width = Math.min(LABEL_HEIGHT * (img.width / img.height), total * 0.9);
+    const mesh = new THREE.Mesh(LABEL_QUAD, mat);
+    mesh.scale.set(width, 1, LABEL_HEIGHT);
+    mesh.position.set(cx, roadTierY(r.c ?? "tertiary") + 0.02, cz);
+    mesh.rotation.y = Math.atan2(-(bz - az), bx - ax);
+    group.add(mesh);
+  }
+  return group;
+}
+
 export function buildLandmarks(data: LandmarksData): THREE.Group {
   const group = new THREE.Group();
 
@@ -325,6 +441,9 @@ export function buildLandmarks(data: LandmarksData): THREE.Group {
     });
     group.add(new THREE.Mesh(mergeGeometries(stripeGeos, false), stripeMat));
   }
+
+  // Street-name labels painted flat along each named road.
+  group.add(buildRoadLabels(data.roads));
 
   // Buildings extruded to height, each painted with a per-building façade +
   // roof color so the merged mesh reads as a varied townscape.
