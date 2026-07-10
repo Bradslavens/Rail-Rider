@@ -33,12 +33,12 @@ const SKY_FRAG = `
  */
 export function setupEnvironment(scene: THREE.Scene, renderer: THREE.WebGLRenderer): Environment {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.3;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // Sun direction (also drives the sky-gradient lean and the shadow light).
-  const elevation = 48;
+  const elevation = 58; // higher = more midday, fewer long grazing shadows
   const azimuth = 135;
   const phi = THREE.MathUtils.degToRad(90 - elevation);
   const theta = THREE.MathUtils.degToRad(azimuth);
@@ -66,9 +66,11 @@ export function setupEnvironment(scene: THREE.Scene, renderer: THREE.WebGLRender
   scene.fog = new THREE.Fog(horizon, 600, 5500);
   scene.background = horizon.clone();
 
-  // Lights.
-  scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x47433a, 0.85));
-  const sun = new THREE.DirectionalLight(0xfff3e0, 2.6);
+  // Lights. A stronger hemisphere fill lifts shadowed/grazing surfaces so wide
+  // shots read like daylight rather than dusk; the sky-blue up / warmer,
+  // lighter ground bounce keeps it natural.
+  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x6b6350, 1.25));
+  const sun = new THREE.DirectionalLight(0xfff3e0, 2.9);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   const half = 180;
@@ -96,7 +98,7 @@ export function setupEnvironment(scene: THREE.Scene, renderer: THREE.WebGLRender
       map: grass.map,
       normalMap: grass.normalMap,
       roughnessMap: grass.roughnessMap,
-      color: 0x9aa48f,
+      color: 0xaeb897,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
